@@ -43,7 +43,7 @@ jobs:
         echo "Running test ... None"
         # fail test or pass test
 
-    - name: Upload pypi
+     - name: Upload pypi
        id: upload_pypi
        if: ${{ steps.test.outcome == 'success' && env.PYPI_UPLOAD == 'true' }}
        run: |
