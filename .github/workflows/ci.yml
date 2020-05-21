@@ -43,13 +43,13 @@ jobs:
         echo "Running test ... None"
         # fail test or pass test
 
-     - name: Upload pypi
-       id: upload_pypi
-       if: ${{ steps.test.outcome == 'success' && env.PYPI_UPLOAD == 'true' }}
-       run: |
-         echo "Uploading pypi ..."
-         cd $LOCATION_SETUP_PY
-         twine upload dist/*.whl --username ${{ secrets.PYPI_USERNAME }} --password ${{ secrets.PYPI_PASSWORD }} --verbose
+    - name: Upload pypi
+      id: upload_pypi
+      if: ${{ steps.test.outcome == 'success' && env.PYPI_UPLOAD == 'true' }}
+      run: |
+        echo "Uploading pypi ..."
+        cd $LOCATION_SETUP_PY
+        twine upload dist/*.whl --username ${{ secrets.PYPI_USERNAME }} --password ${{ secrets.PYPI_PASSWORD }} --verbose
 
     - name: Upload docker
       if: ${{ always() && steps.test.conclusion == 'success' && env.DOCKER_UPLOAD == 'true' }}
