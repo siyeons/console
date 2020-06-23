@@ -2,7 +2,7 @@
 	"ACTION": {
 		"DICT": {
 			"ADD_TAG": "Add associated tags.",
-			"ADD_TAG_BY": "Set {name}'s tag.",
+			"ADD_TAG_BY": "asdfasdfasdf",
 			"CLICK_ADD_BTN_MSG": "Click a button to add tag.",
 			"HELPMSG": "The Key - Value pair is a required field. Enter a combination of letters, numbers and underscores.",
 			"INVALID": {
@@ -285,7 +285,7 @@
 		},
 		"CHECK_HASH": "Please, Check Hash Tag format.",
 		"CRT_FAIL_ARG": "Fail to create {0}. Please, check your action.",
-		"CRT_PROJ": "Create Project",
+		"CRT_PROJ": "",
 		"CRT_PROJ_GRP": "Create Project Group",
 		"CRT_SUCC_ARG": "New {0} is successfully created.",
 		"DEL_ARG": "Delete {0}",
