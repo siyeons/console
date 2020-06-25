@@ -16,12 +16,12 @@ import {
 } from '@/lib/api/toolset';
 import { forceRefArg, readonlyRefArg } from '@/lib/type';
 import {
-    baseAutocompleteHandler,
-    SearchQueryType,
+    BaseAutocompleteHandler, SEARCH_PREFIX, setFilterOrWithSuggestKeys,
 } from '@/components/organisms/search/query-search-bar/autocompleteHandler';
 import { ApiQuery, defaultQuery } from '@/lib/api/query';
 import { QuerySearchTableACHandler } from '@/lib/api/auto-complete';
 import {
+    FilterItem,
     GetDataAction, ListType, MemberListAction, QueryAPI,
 } from '@/lib/fluent-api';
 import { ComponentInstance } from '@vue/composition-api/dist/component';
@@ -31,6 +31,7 @@ import {
 } from '@/lib/router-query-string';
 import { isNotEmpty } from '@/lib/util';
 import { makeSearchQuery, makeSearchText } from '@/components/organisms/search/query-search-bar/toolset';
+import { SearchQueryType } from '@/components/organisms/search/query-search-bar/type';
 
 interface DynamicTableOptions{
     options: any;
@@ -240,48 +241,6 @@ export const defaultAdminLayout = {
     options: defaultAdminOptions,
 };
 
-export class AdminFluentAPI<
-    parameter = any,
-    resp extends ListType<any> = ListType<any>,
-    initData = any,
-    initSyncData = any,
-    T extends SearchTableToolSet<initData, initSyncData> = SearchTableToolSet<initData, initSyncData>,
-    action extends MemberListAction<any, any> = MemberListAction<parameter, resp>,
-    > extends TabSearchTableFluentAPI<parameter, resp, initData, initSyncData, T, action> implements DynamicTableOptions {
-    getAction = () => this.getSearchTableDefaultAction()
-        .setIds(this.target.tableTS.selectState.selectItems.map(item => item[this.idField]));
-
-    constructor(
-        action: action,
-        isShow: forceRefArg<boolean>,
-        protected idField: string,
-        protected target: BaseTableFluentAPI,
-        initData: initData = {} as initData,
-        initSyncData: initSyncData = {} as initSyncData,
-        public options = defaultAdminOptions,
-    ) {
-        super(
-            action,
-            isShow,
-            {
-                striped: true,
-                border: false,
-                shadow: false,
-                padding: false,
-                multiSelect: false,
-                selectable: false,
-                ...initData,
-            }, // sub api can't support only query
-            initSyncData,
-        );
-        watch(() => this.target.tableTS.selectState.selectItems, async (selected, before) => {
-            if (isShow.value && selected.length >= 1 && selected !== before) {
-                await this.getData();
-            }
-        });
-    }
-}
-
 export const defaultHistoryFields = [
     { name: 'Update By', key: 'updated_by' },
     { name: 'Key', key: 'key' },
@@ -306,56 +265,9 @@ export const defaultHistoryLayout = {
     options: defaultHistoryOptions,
 };
 
-export class HistoryFluentAPI<
-    parameter = any,
-    resp extends ListType<any> = ListType<any>,
-    initData = any,
-    initSyncData = any,
-    T extends SearchTableToolSet<initData, initSyncData> = SearchTableToolSet<initData, initSyncData>,
-    action extends GetDataAction<any, any> = GetDataAction<parameter, resp>,
-    > extends TabSearchTableFluentAPI<parameter, resp, initData, initSyncData, T, action> implements DynamicTableOptions {
-    getAction = () => this.getSearchTableDefaultAction()
-        .setKeyPath('collection_info.update_history')
-        .setId(this.resourceId.value);
-
-
-    constructor(
-        action: action,
-        isShow: forceRefArg<boolean>,
-        protected resourceId: forceRefArg<string>,
-        initData: initData = {} as initData,
-        initSyncData: initSyncData = {} as initSyncData,
-        public options: any = defaultHistoryOptions,
-    ) {
-        super(
-            action,
-            isShow,
-            {
-                striped: true,
-                border: false,
-                shadow: false,
-                padding: false,
-                multiSelect: false,
-                selectable: false,
-
-                ...initData,
-            }, // sub api can't support only query
-            initSyncData,
-        );
-
-        onMounted(() => {
-            watch(this.resourceId, async (id, preId) => {
-                if (isShow.value && id && id !== preId) {
-                    await this.getData();
-                }
-            });
-        });
-    }
-}
-
 
 export interface ACHandlerMeta {
-    handlerClass: typeof baseAutocompleteHandler;
+    handlerClass: typeof BaseAutocompleteHandler;
     args: any;
 }
 
@@ -400,7 +312,17 @@ export class QuerySearchTableFluentAPI<
 
     getAction = () => {
         if (Array.isArray(this.tableTS.querySearch.tags.value)) {
-            return this.getDefaultAction().setFilter(...this.tableTS.querySearch.tags.value);
+            const and: FilterItem[] = [];
+            const or: FilterItem[] = [];
+            this.tableTS.querySearch.tags.value.forEach((q) => {
+                if (q.key !== SEARCH_PREFIX) and.push(q);
+                else if (this.tableTS.querySearch.acHandlerArgs.suggestKeys) {
+                    setFilterOrWithSuggestKeys(q, this.tableTS.querySearch.acHandlerArgs.suggestKeys, or);
+                }
+            });
+            return this.getDefaultAction()
+                .setFilter(...and)
+                .setFilterOr(...or);
         }
         return this.getDefaultAction();
     }

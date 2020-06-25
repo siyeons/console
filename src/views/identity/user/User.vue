@@ -8,7 +8,7 @@ import UserTemplate, { userSetup, eventNames } from '@/views/identity/user/User.
 import userEventBus from '@/views/identity/user/UserEventBus';
 import { mountBusEvent } from '@/lib/compostion-util';
 import {
-    defaultAutocompleteHandler,
+    DefaultAutocompleteHandler,
     getEnumValues, getSearchEnumValues,
 } from '@/components/organisms/search/query-search-bar/autocompleteHandler';
 import { defaultQuery } from '@/lib/api/query';
@@ -18,7 +18,7 @@ export default {
     name: 'User',
     extends: UserTemplate,
     setup(props, context) {
-        class ACHandler extends defaultAutocompleteHandler {
+        class ACHandler extends DefaultAutocompleteHandler {
         // eslint-disable-next-line class-methods-use-this
             get keys() {
                 return [
@@ -52,7 +52,7 @@ export default {
             // eslint-disable-next-line no-shadow
             constructor() {
                 super();
-                this.handlerMap.value.push(...[
+                this.HandlerMap.value.push(...[
                     getEnumValues('state', ['ENABLED', 'DISABLED']),
                     getSearchEnumValues('timezone', moment.tz.names(), [
                         'UTC', 'Asia/Seoul',

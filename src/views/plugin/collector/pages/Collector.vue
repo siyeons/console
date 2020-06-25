@@ -174,7 +174,7 @@ export default {
 
             constructor(args: QSTableACHandlerArgs) {
                 super(args);
-                this.handlerMap.value = [
+                this.HandlerMap.value = [
                     ...makeValuesFetchHandler(
                         context.parent,
                         '/inventory/collector/list',
