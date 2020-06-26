@@ -244,7 +244,6 @@ export default {
                     getEnumValues('os_type', ['LINUX', 'WINDOWS']),
                     getEnumValues('collection_info.state', ['MANUAL', 'ACTIVE', 'DISCONNECTED']),
                     getEnumValues('server_type', ['BAREMETAL', 'VM', 'HYPERVISOR', 'UNKNOWN']),
-                    getFetchValues('project_id', '/identity/project/list', context.parent),
                     getValueHandler('project_id', fluentApi
                         .statisticsTest()
                         .resource()

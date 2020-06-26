@@ -1,7 +1,7 @@
 import _ from 'lodash';
 import { readonlyArgs } from '@/lib/type';
 import { SearchQueryType } from '@/components/organisms/search/query-search-bar/type';
-import { FilterItem, ListAction } from '@/lib/fluent-api';
+import { FilterItem, ListAction, QueryAPI } from '@/lib/fluent-api';
 import { StatAction, StatQueryAPI } from '@/lib/fluent-api/statistics/toolset';
 
 export const OPERATOR_MAP = Object.freeze({
@@ -150,16 +150,29 @@ export const autoCompleteQuery = (searchQuery, itemLimit?: number, sortBy?: stri
  * set autocomplete query to given action
  */
 export function setActionByQuery
-<api extends StatQueryAPI<any, any> = StatQueryAPI<any, any>>(
+<api extends StatQueryAPI<any, any>|QueryAPI<any, any> = StatQueryAPI<any, any>>(
     action: api,
     searchQuery: FilterItem,
     itemLimit?: number,
     sortBy?: string,
     sortDesc?: boolean,
 ): api {
-    let api: api = action.setDistinct(searchQuery.key);
-    api = api.setSort(sortBy || searchQuery.key, sortDesc === undefined ? false : sortDesc);
-    if (itemLimit) api = api.setLimit(itemLimit);
+    let api;
+    if (action instanceof StatQueryAPI) {
+        api = action.setDistinct(searchQuery.key);
+        api = api.setSort(sortBy || searchQuery.key, sortDesc === undefined ? false : sortDesc);
+        if (itemLimit) api = api.setLimit(itemLimit);
+    } else if (action instanceof QueryAPI) {
+        api = action;
+        if (sortBy) {
+            api.setSortBy(sortBy);
+            if (sortDesc !== undefined) api.setSortDesc(sortDesc);
+        }
+        if (itemLimit) api = api.setPageSize(itemLimit);
+    }
+
+
+
     if (searchQuery.value) api = api.setFilter(searchQuery);
     return api;
 }

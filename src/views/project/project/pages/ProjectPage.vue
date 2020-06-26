@@ -246,14 +246,20 @@ import PCheckBox from '@/components/molecules/forms/checkbox/CheckBox.vue';
 import PButton from '@/components/atoms/buttons/Button.vue';
 import PIconTextButton from '@/components/molecules/buttons/IconTextButton.vue';
 import PSkeleton from '@/components/atoms/skeletons/Skeleton.vue';
-import { FILTER_OPERATOR, fluentApi } from '@/lib/fluent-api';
+import {
+    FILTER_OPERATOR, fluentApi, ListAction, QueryAPI,
+} from '@/lib/fluent-api';
 import { UnwrapRef } from '@vue/composition-api/dist/reactivity';
 import { ProjectItemResp, ProjectListResp } from '@/lib/fluent-api/identity/project';
 import { AxiosResponse } from 'axios';
 import { useStore } from '@/store/toolset';
 import { ProjectSummaryResp } from '@/lib/fluent-api/statistics';
-import { QuerySearchGridFluentAPI, RouteQuerySearchGridFluentAPI, DefaultQSGridQSProps } from '@/lib/api/grid';
-import { QuerySearchTableACHandler } from '@/lib/api/auto-complete';
+import { DefaultQSGridQSProps, RouteQuerySearchGridFluentAPI } from '@/lib/api/grid';
+import { QSTableACHandlerArgs, QuerySearchTableACHandler } from '@/lib/api/auto-complete';
+import {
+    getValueHandler,
+    makeValueHandlers,
+} from '@/components/organisms/search/query-search-bar/autocompleteHandler';
 import PQuerySearchBar from '@/components/organisms/search/query-search-bar/QuerySearchBar.vue';
 import PQuerySearchTags from '@/components/organisms/search/query-search-tags/QuerySearchTags.vue';
 import PButtonModal from '@/components/organisms/modals/button-modal/ButtonModal.vue';
@@ -262,12 +268,8 @@ import SProjectGroupCreateFormModal from '@/views/project/project/modules/Projec
 import { STAT_OPERATORS } from '@/lib/fluent-api/statistics/type';
 import { showErrorMessage } from '@/lib/util';
 import PTreeNode from '@/components/molecules/tree/PTreeNode.vue';
-import {
-    ProjectNodeState, DefaultQSTreeProps, RouteProjectTreeFluentAPI,
-} from '@/lib/api/tree-node';
-import {
-    getBaseNodeState, getDefaultNode, getTreeItem, TreeItem,
-} from '@/components/molecules/tree/PTreeNode.toolset';
+import { DefaultQSTreeProps, ProjectNodeState, RouteProjectTreeFluentAPI } from '@/lib/api/tree-node';
+import { getBaseNodeState, getDefaultNode, TreeItem } from '@/components/molecules/tree/PTreeNode.toolset';
 import { ComponentInstance } from '@vue/composition-api/dist/component';
 import { propsCopy } from '@/lib/router-query-string';
 
@@ -435,8 +437,36 @@ export default {
              * QuerySearch Grid API : Grid layout with query search bar & List Action(with fluent API)
              */
         const listAction = projectGroupAPI.listProjects().setTransformer(getCard).setIncludeProvider();
-
         const isShow = computed(() => treeApiHandler.ts.metaState.firstSelectedNode);
+
+        class ACHandler extends QuerySearchTableACHandler {
+            constructor(args: QSTableACHandlerArgs) {
+                super(args);
+                this.HandlerMap.value = [
+                    // ...makeValueHandlers<QueryAPI<any,any>>([
+                    //     'name',
+                    // ], projectGroupAPI.listProjects().setRecursive(true)),
+                    ...makeValueHandlers(['name', 'project_id'],
+                        fluentApi
+                            .statisticsTest()
+                            .resource()
+                            .stat()
+                            .setResourceType('identity.Project')
+                            .setFixFilter({
+                                key: 'project_group_id',
+                                value: treeApiHandler.ts.metaState.firstSelectedNode.node.data.id,
+                                operator: FILTER_OPERATOR.in,
+                            })),
+                ];
+            }
+        }
+        const args = {
+            keys: [
+                'project_id',
+                'name',
+            ],
+            suggestKeys: ['project_id', 'name'],
+        };
 
         const apiHandler = new RouteQuerySearchGridFluentAPI(
             listAction,
@@ -446,13 +476,7 @@ export default {
                 cardHeight: '15rem',
             },
             undefined,
-            {
-                handlerClass: QuerySearchTableACHandler,
-                args: {
-                    keys: ['name'],
-                    suggestKeys: [],
-                },
-            },
+            { handlerClass: ACHandler, args },
             isShow,
             vm,
         );

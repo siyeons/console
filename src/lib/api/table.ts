@@ -32,6 +32,7 @@ import {
 import { isNotEmpty } from '@/lib/util';
 import { makeSearchQuery, makeSearchText } from '@/components/organisms/search/query-search-bar/toolset';
 import { SearchQueryType } from '@/components/organisms/search/query-search-bar/type';
+import NumberBadge from '@/components/molecules/badges/number-badge/NumberBadge.vue';
 
 interface DynamicTableOptions{
     options: any;
@@ -339,6 +340,7 @@ interface QuerySearchQSNameType{
     sortDesc: string;
     thisPage: string;
     pageSize: string;
+    search: string;
 }
 
 export enum DefaultQSTableQSPropsName {
@@ -348,6 +350,7 @@ export enum DefaultQSTableQSPropsName {
     sortDesc= 'sd',
     thisPage= 'p',
     pageSize= 'ps',
+    search= 't_se',
 }
 export const makeQSTableQSProps = (names: QuerySearchQSNameType) => ({
     [names.selectItems]: {
@@ -374,7 +377,88 @@ export const makeQSTableQSProps = (names: QuerySearchQSNameType) => ({
         type: [String, Number],
         default: null,
     },
+    [names.search]: {
+        type: [String, Number],
+        default: null,
+    },
 });
+
+export class RouteSearchTableFluentAPI<
+    parameter = any,
+    resp extends ListType<any> = ListType<any>,
+    initData = any,
+    initSyncData = any,
+    T extends SearchTableToolSet<initData, initSyncData> = SearchTableToolSet<initData, initSyncData>,
+    action extends QueryAPI<parameter, resp> = QueryAPI<parameter, resp>,
+    > extends SearchTableFluentAPI<parameter, resp, initData, initSyncData, T, action> implements RouterAPIToolsetInterface {
+    constructor(
+        action: action,
+        initData: initData = undefined as unknown as initData,
+        initSyncData: initSyncData = undefined as unknown as initSyncData,
+        public vm: Vue|ComponentInstance,
+        public qsName: QuerySearchQSNameType = DefaultQSTableQSPropsName,
+        public isReady = false,
+        initLazy = false,
+    ) {
+        super(action, initData, initSyncData);
+
+        watch(() => this.tableTS.syncState.selectIndex, async (aft, bef) => {
+            if (!_.isEqual(aft, bef)) {
+                await this.routerPush();
+            }
+        });
+    }
+
+    applyAPIRouter = (props: any) => {
+        if (isNotEmpty(props[this.qsName.pageSize])) {
+            this.tableTS.syncState.pageSize = Number(props[this.qsName.pageSize]);
+        }
+        if (isNotEmpty(props[this.qsName.thisPage])) {
+            this.tableTS.syncState.thisPage = Number(props[this.qsName.thisPage]);
+        }
+        if (isNotEmpty(props[this.qsName.sortBy])) {
+            this.tableTS.syncState.sortBy = props[this.qsName.sortBy];
+            this.tableTS.syncState.sortDesc = Boolean(props[this.qsName.sortDesc]);
+        }
+        const search = props[this.qsName.search];
+        if (isNotEmpty(search)) {
+            this.tableTS.searchText.value = search;
+        }
+
+        this.isReady = true;
+    };
+
+    applyDisplayRouter =(props: any) => {
+        const selectItems = props[this.qsName.selectItems];
+        if (isNotEmpty(selectItems)) {
+            this.tableTS.syncState.selectIndex = getArrayQueryString(selectItems, Number);
+        }
+    }
+
+    routerPush = async () => {
+        const query = {
+            ...this.vm.$route.query,
+            [this.qsName.sortBy]: this.tableTS.syncState.sortBy,
+            [this.qsName.sortDesc]: String(this.tableTS.syncState.sortDesc),
+            [this.qsName.thisPage]: this.tableTS.syncState.thisPage,
+            [this.qsName.pageSize]: this.tableTS.syncState.pageSize,
+            [this.qsName.selectItems]: this.tableTS.syncState.selectIndex,
+            [this.qsName.search]: this.tableTS.searchText.value,
+        };
+        if (!query[this.qsName.sortBy]) {
+            delete query[this.qsName.sortDesc];
+        }
+        await pushRouterQuery(this.vm, query);
+    }
+
+    getData = async (resetThisPage = false) => {
+        if (this.isReady) {
+            await this.defaultGetData(resetThisPage);
+            await this.routerPush();
+        }
+    };
+}
+
 
 export const DefaultQSTableQSProps = makeQSTableQSProps(DefaultQSTableQSPropsName);
 export class RouteQuerySearchTableFluentAPI<

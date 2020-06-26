@@ -249,7 +249,6 @@ export default {
             metricAPI.setFilter(
                 { key: 'cloud_service_type_id', operator: '=', value: ids },
             ).execute().then((rp) => {
-                console.debug(rp);
                 const data = {};
                 rp.data.results.forEach((item) => {
                     data[item.cloud_service_type_id] = item;
@@ -285,7 +284,6 @@ export default {
                     name: item.name,
                 },
             });
-            // console.debug(item);
         };
 
         const goToServiceAccount = () => {
@@ -315,19 +313,26 @@ export default {
             data.all = total;
             providerTotalCount.value = data;
         };
+
+        const setFixFilter = (pro: string, handler: RouteSearchGridFluentAPI<any, any>, reset = true) => {
+            if (pro === 'all') {
+                handler.action = listAction.setFixFilter();
+            } else {
+                handler.action = listAction.setFixFilter(
+                    { key: 'provider', operator: '=', value: pro },
+                );
+            }
+            if (reset) {
+                handler.resetAll();
+            }
+        };
         const routerHandler = async () => {
             const prop = propsCopy(props);
             await requestProvider();
             providerListState.applyDisplayRouter(prop);
+            setFixFilter(prop.st || 'all', apiHandler, false);
             apiHandler.applyAPIRouter(prop);
             await apiHandler.getData();
-        };
-
-        const testGetData = async (resetPage: boolean) => {
-            if (resetPage) {
-                apiHandler.gridTS.syncState.thisPage = 1;
-                await apiHandler.getData();
-            }
         };
 
         onMounted(async () => {
@@ -336,14 +341,7 @@ export default {
             let ready = false;
             watch(selectProvider, (after, before) => {
                 if (ready && after && after !== before) {
-                    if (after === 'all') {
-                        apiHandler.action = listAction.setFixFilter();
-                    } else {
-                        apiHandler.action = listAction.setFixFilter(
-                            { key: 'provider', operator: '=', value: after },
-                        );
-                    }
-                    apiHandler.resetAll();
+                    setFixFilter(after, apiHandler);
                     getData();
                 }
             });
@@ -353,7 +351,6 @@ export default {
             selectProvider,
             selectProviderName,
             apiHandler,
-            testGetData,
             clickCard,
             goToServiceAccount,
             providerStore,
