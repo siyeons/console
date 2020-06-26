@@ -554,7 +554,7 @@ export default {
                 .execute()
                 .then(() => {
                     context.root.$notify({
-                        group: 'noticeBottomRight',
+                        group: 'noticeTopRight',
                         type: 'success',
                         title: 'Success',
                         text: 'Delete Project Group',
@@ -596,7 +596,7 @@ export default {
                     })
                         .execute();
                     context.root.$notify({
-                        group: 'noticeBottomRight',
+                        group: 'noticeTopRight',
                         type: 'success',
                         title: 'Success',
                         text: 'Create Project Group',
@@ -635,7 +635,7 @@ export default {
                     .execute()
                     .then((resp) => {
                         context.root.$notify({
-                            group: 'noticeBottomRight',
+                            group: 'noticeTopRight',
                             type: 'success',
                             title: 'Success',
                             text: 'Update Project Group',
@@ -667,7 +667,7 @@ export default {
                 .execute()
                 .then(() => {
                     context.root.$notify({
-                        group: 'noticeBottomRight',
+                        group: 'noticeTopRight',
                         type: 'success',
                         title: 'Success',
                         text: 'Create Project',

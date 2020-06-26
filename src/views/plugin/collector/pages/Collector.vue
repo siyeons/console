@@ -343,7 +343,7 @@ export default {
             try {
                 await checkModalState.api.execute();
                 context.root.$notify({
-                    group: 'noticeBottomRight',
+                    group: 'noticeTopRight',
                     type: 'success',
                     title: 'success',
                     text: checkModalState.title,

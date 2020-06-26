@@ -294,7 +294,7 @@ export default {
                 .execute()
                 .then(() => {
                     context.root.$notify({
-                        group: 'noticeBottomRight',
+                        group: 'noticeTopRight',
                         type: 'success',
                         title: 'Success',
                         text: 'Delete Project',
@@ -324,7 +324,7 @@ export default {
                 .execute()
                 .then(() => {
                     context.root.$notify({
-                        group: 'noticeBottomRight',
+                        group: 'noticeTopRight',
                         type: 'success',
                         title: 'Success',
                         text: 'Update Project',
@@ -381,7 +381,7 @@ export default {
             await memberDeleteAction.setSubIds(items.map(it => it.user_info.user_id)).execute()
                 .then(() => {
                     context.root.$notify({
-                        group: 'noticeBottomRight',
+                        group: 'noticeTopRight',
                         type: 'success',
                         title: 'Success',
                         text: 'Sucessfully Deleted',

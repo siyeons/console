@@ -143,7 +143,7 @@ export default {
                 .execute()
                 .then(() => {
                     context.root.$notify({
-                        group: 'noticeBottomRight',
+                        group: 'noticeTopRight',
                         type: 'success',
                         title: 'Success',
                         text: 'Add Member',

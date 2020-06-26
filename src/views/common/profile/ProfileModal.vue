@@ -196,7 +196,7 @@ export const profileSetup = (props, context) => {
             .execute()
             .then(() => {
                 context.root.$notify({
-                    group: 'noticeBottomRight',
+                    group: 'noticeTopRight',
                     type: 'success',
                     title: 'success',
                     text: 'Update Profile',
@@ -215,7 +215,7 @@ export const profileSetup = (props, context) => {
             .execute()
             .then(() => {
                 context.root.$notify({
-                    group: 'noticeBottomRight',
+                    group: 'noticeTopRight',
                     type: 'success',
                     title: 'success',
                     text: 'Update Profile',

@@ -410,7 +410,7 @@ export default {
         const checkModalConfirm = (items: ServerModel[]) => {
             checkTableModalState.action.setIds(items.map(item => item.server_id)).execute().then(() => {
                 context.root.$notify({
-                    group: 'noticeBottomRight',
+                    group: 'noticeTopRight',
                     type: 'success',
                     title: 'success',
                     duration: 2000,

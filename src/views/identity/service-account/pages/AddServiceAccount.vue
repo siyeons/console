@@ -333,7 +333,7 @@ export default {
                             .execute()
                             .then(() => {
                                 context.root.$notify({
-                                    group: 'noticeBottomRight',
+                                    group: 'noticeTopRight',
                                     type: 'success',
                                     title: 'Add Success',
                                     duration: 2000,
@@ -344,25 +344,10 @@ export default {
                             .catch(async (errorResp) => {
                                 console.error(errorResp);
                                 await deleteAccount(resp.data.service_account_id);
-                                // vm?.$notify({
-                                //     group: 'noticeBottomRight',
-                                //     type: 'alert',
-                                //     title: 'Add Fail',
-                                //     duration: 2000,
-                                //     speed: 1000,
-                                // });
                                 showErrorMessage('Fail to Add Account', errorResp, context.root);
                             });
                     })
                     .catch((eResp) => {
-                        // console.debug(eResp);
-                        // vm?.$notify({
-                        //     group: 'noticeBottomRight',
-                        //     type: 'alert',
-                        //     title: 'Add Fail',
-                        //     duration: 2000,
-                        //     speed: 1000,
-                        // });
                         showErrorMessage('Request Fail', eResp, context.root);
                     });
             }

@@ -447,7 +447,7 @@ export default {
                 await action.setId(data.id).execute()
                     .then(() => {
                         context.root.$notify({
-                            group: 'noticeBottomRight',
+                            group: 'noticeTopRight',
                             type: 'success',
                             title: 'Success',
                             text: 'Change Project Success',
@@ -461,7 +461,7 @@ export default {
                 await action.setReleaseProject().execute()
                     .then(() => {
                         context.root.$notify({
-                            group: 'noticeBottomRight',
+                            group: 'noticeTopRight',
                             type: 'success',
                             title: 'Success',
                             text: 'Release Project Success',
@@ -561,7 +561,7 @@ export default {
             deleteAction.value.execute()
                 .then(() => {
                     context.root.$notify({
-                        group: 'noticeBottomRight',
+                        group: 'noticeTopRight',
                         type: 'success',
                         title: 'Deleted Success',
                         text: 'Delete Secret Success',
@@ -608,7 +608,7 @@ export default {
                 .execute()
                 .then(() => {
                     context.root.$notify({
-                        group: 'noticeBottomRight',
+                        group: 'noticeTopRight',
                         type: 'success',
                         title: 'Add Success',
                         text: 'Add Secret Success',

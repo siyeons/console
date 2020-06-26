@@ -125,7 +125,7 @@ export default {
             await context.parent.$http.post('/identity/user/enable', getUsersParam(items)).then(async (_) => {
                 await requestUserList();
                 context.root.$notify({
-                    group: 'noticeBottomRight',
+                    group: 'noticeTopRight',
                     type: 'success',
                     title: 'success',
                     text: 'enable users',
@@ -141,7 +141,7 @@ export default {
             await context.parent.$http.post('/identity/user/disable', getUsersParam(items)).then(async (_) => {
                 await requestUserList();
                 context.root.$notify({
-                    group: 'noticeBottomRight',
+                    group: 'noticeTopRight',
                     type: 'success',
                     title: 'success',
                     text: 'disable users',
@@ -158,7 +158,7 @@ export default {
             await context.parent.$http.post('/identity/user/delete', getUsersParam(items)).then(async (_) => {
                 await requestUserList();
                 context.root.$notify({
-                    group: 'noticeBottomRight',
+                    group: 'noticeTopRight',
                     type: 'success',
                     title: 'success',
                     text: 'delete users',
@@ -175,7 +175,7 @@ export default {
             await context.parent.$http.post('/identity/user/create', item).then(async (_) => {
                 await requestUserList();
                 context.root.$notify({
-                    group: 'noticeBottomRight',
+                    group: 'noticeTopRight',
                     type: 'success',
                     title: 'success',
                     text: 'add users',
@@ -192,7 +192,7 @@ export default {
             await context.parent.$http.post('/identity/user/update', item).then(async (_) => {
                 await requestUserList();
                 context.root.$notify({
-                    group: 'noticeBottomRight',
+                    group: 'noticeTopRight',
                     type: 'success',
                     title: 'success',
                     text: 'update users',
