@@ -450,7 +450,7 @@ export default {
                             group: 'noticeTopRight',
                             type: 'success',
                             title: 'Success',
-                            text: 'Change Project Success',
+                            text: 'Project has been successfully changed.',
                             duration: 2000,
                             speed: 1000,
                         });

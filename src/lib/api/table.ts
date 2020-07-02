@@ -243,22 +243,23 @@ export const defaultAdminLayout = {
 };
 
 export const defaultHistoryFields = [
-    { name: 'Update By', key: 'updated_by' },
     { name: 'Key', key: 'key' },
+    { name: 'Job ID', key: 'job_id'},
+    { name: 'Updated By', key: 'updated_by' },
     {
-        name: 'Update At',
+        name: 'Updated',
         key: 'updated_at',
         type: 'datetime',
         options: {
             source_type: 'timestamp',
-            source_format: 'seconds',
+            // source_format: 'seconds',
         },
     },
 
 ];
 export const defaultHistoryOptions = {
     fields: defaultHistoryFields,
-    root_path: 'collection_info.update_history',
+    root_path: 'collection_info.change_history',
 };
 
 export const defaultHistoryLayout = {

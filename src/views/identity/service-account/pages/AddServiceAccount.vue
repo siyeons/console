@@ -141,7 +141,7 @@ import PPaneLayout from '@/components/molecules/layouts/pane-layout/PaneLayout.v
 import PButton from '@/components/atoms/buttons/Button.vue';
 import PIconTextButton from '@/components/molecules/buttons/IconTextButton.vue';
 import PRadio from '@/components/molecules/forms/radio/Radio.vue';
-import SProjectTreePanel from '@/components/organisms/panels/project-tree-panel/SProjectTreePanel.vue';
+import SProjectTreePanel from '@/components/organisms/panels/project-tree-panel/SProjectTreePanel_new.vue';
 import { useStore } from '@/store/toolset';
 import PI from '@/components/atoms/icons/PI.vue';
 import _ from 'lodash';
@@ -306,7 +306,7 @@ export default {
             if (tagsTS.allValidation()
                 && actFixFormValid && actJscFormValid
                 && crdFixFormValid && crdJscFormValid
-                && (projectRef.value.release || (!projectRef.value.release && !projectRef.value.error))
+                && !projectRef.value.error
             ) {
                 const item: any = {
                     name: actFixFormTS.syncState.item.name,
@@ -314,9 +314,9 @@ export default {
                     data: actJscTS.syncState.item,
                     tags: tagsTS.vdState.newDict,
                 };
-                if (!projectRef.value.release && projectRef.value.selectNode) {
+                if (projectRef.value.selectNode) {
                     // eslint-disable-next-line camelcase
-                    item.project_id = projectRef.value.selectNode.data.id;
+                    item.project_id = projectRef.value.selectNode.node.data.id;
                 }
                 await fluentApi.identity().serviceAccount().create().setParameter(item)
                     .execute()
@@ -336,6 +336,7 @@ export default {
                                     group: 'noticeTopRight',
                                     type: 'success',
                                     title: 'Add Success',
+                                    text: 'Service Account has been successfully registered.',
                                     duration: 2000,
                                     speed: 1000,
                                 });
@@ -348,6 +349,7 @@ export default {
                             });
                     })
                     .catch((eResp) => {
+                        console.error(eResp)
                         showErrorMessage('Request Fail', eResp, context.root);
                     });
             }
