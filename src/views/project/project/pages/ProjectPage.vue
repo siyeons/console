@@ -28,6 +28,11 @@
                              :height="toggleSize"
                         />
                     </template>
+                    <template #toggle-right>
+                        <p-i name="ic_tree_project-group" class="project-group-icon"
+                             width="0.9rem"
+                        />
+                    </template>
                     <template #right-extra="{data}">
                         <div v-if="data.id === hoveredId && isHover">
                             <div v-tooltip.top="{content: $t('TREE_TYPE.CREATE_GRP'), delay: {show: 500}}"
@@ -755,18 +760,24 @@ export default {
     }
 
     .project-group {
-    & p {
-          @apply text-xs text-gray;
-      }
-    & span {
-          @apply text-2xl font-bold pb-2;
-      }
-    .delete-btn {
-        @apply text-black -mt-2 ml-2 cursor-pointer;
-    &:hover {
-         @apply text-white;
-     }
+        & p {
+              @apply text-xs text-gray;
+          }
+        & span {
+              @apply text-2xl font-bold pb-2;
+        }
+        .delete-btn {
+            @apply text-black -mt-2 ml-2 cursor-pointer;
+            &:hover {
+                 @apply text-white;
+             }
+        }
     }
+
+    .project-group-icon {
+        @apply ml-2;
+        padding-top: 3px;
+        margin-right: 5px;
     }
 
     .empty {
@@ -775,30 +786,31 @@ export default {
 
     .project-description {
         @apply mx-6 mt-6;
-    .project-group-name {
-        @apply text-gray-500 text-xs mb-1;
-    }
-    #project-name {
-        @apply text-lg font-bold truncate pb-5 overflow-hidden;
-    }
-    .provider-icon {
-        @apply mr-4 inline;
-        max-width: 1.5rem;
-        max-height: 1.5rem;
-        min-height: 1.5rem;
-    }
-    .providers {
-        @apply relative text-blue-600 whitespace-no-wrap;
-        max-height: 1.5rem;
-        min-height: 1.5rem;
-        width: fit-content;
-        span { padding:0.125rem 0.375rem; }
-        &:hover {
-             @apply text-secondary font-bold;
-            span {
-                @apply bg-blue-300 ;
-            }
+
+        .project-group-name {
+            @apply text-gray-500 text-xs mb-1;
         }
+        #project-name {
+            @apply text-lg font-bold truncate pb-5 overflow-hidden;
+        }
+        .provider-icon {
+            @apply mr-4 inline;
+            max-width: 1.5rem;
+            max-height: 1.5rem;
+            min-height: 1.5rem;
+        }
+        .providers {
+            @apply relative text-blue-600 whitespace-no-wrap;
+            max-height: 1.5rem;
+            min-height: 1.5rem;
+            width: fit-content;
+            span { padding:0.125rem 0.375rem; }
+            &:hover {
+                 @apply text-secondary font-bold;
+                span {
+                    @apply bg-blue-300 ;
+                }
+            }
     }
 
     .empty-providers {
