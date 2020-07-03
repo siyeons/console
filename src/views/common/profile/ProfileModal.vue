@@ -156,8 +156,8 @@ export const profileSetup = (props, context) => {
             { type: 'item', label: '한국어', name: 'ko' },
         ],
         timezones: [
-            { type: 'item', label: 'UTC', name: 'UTC' },
-            { type: 'item', label: 'Asia/Seoul (default)', name: 'Asia/Seoul' },
+            { type: 'item', label: 'UTC (default)', name: 'UTC' },
+            { type: 'item', label: 'Asia/Seoul', name: 'Asia/Seoul' },
         ],
         // timezones: moment.tz.names().map(tz => new MenuItem(tz, tz)),
         showValidation: false,
