@@ -1,6 +1,6 @@
 <template>
     <general-page-layout>
-         <PPageTitle title="Plugins"
+        <PPageTitle title="Plugins"
                     use-total-count
                     :total-count="apiHandler.totalCount.value"
         />
@@ -64,7 +64,6 @@ import PTab from '@/components/organisms/tabs/tab/Tab.vue';
 import PButton from '@/components/atoms/buttons/Button.vue';
 import { makeTrItems } from '@/lib/view-helper/index';
 import PRawData from '@/components/organisms/text-editor/raw-data/RawData.vue';
-import { QuerySearchTableACHandler } from '@/lib/api/auto-complete';
 import { DataSourceItem, fluentApi } from '@/lib/fluent-api';
 import { QuerySearchTableFluentAPI } from '@/lib/api/table';
 import { TabBarState } from '@/components/molecules/tabs/tab-bar/toolset';
@@ -72,6 +71,8 @@ import GeneralPageLayout from '@/views/containers/page-layout/GeneralPageLayout.
 import PDictPanel from '@/components/organisms/panels/dict-panel/DictPanel_origin.vue';
 import { showErrorMessage } from '@/lib/util';
 import PPageTitle from '@/components/organisms/title/page-title/PageTitle.vue';
+import { getKeyHandler } from '@/components/organisms/search/query-search/PQuerySearch.toolset';
+import { getStatApiValueHandlerMap } from '@/lib/api/query-search';
 
 export default {
     name: 'Supervisor',
@@ -108,23 +109,21 @@ export default {
         });
         multiItemTab.syncState.activeTab = 'data';
         const pluginKeyAutoCompletes = ['plugin_id', 'version', 'endpoint'];
-        const pluginACHandlerMeta = {
-            handlerClass: QuerySearchTableACHandler,
-            args: {
-                keys: pluginKeyAutoCompletes,
-                suggestKeys: pluginKeyAutoCompletes,
-            },
-        };
 
         const pluginList = fluentApi.plugin().supervisorPlugin().list();
-        // .setOnly(...onlyFields);
 
         const apiHandler = new QuerySearchTableFluentAPI(
             pluginList,
             { selectable: false },
 
             undefined,
-            pluginACHandlerMeta,
+            {
+                keyHandler: getKeyHandler(pluginKeyAutoCompletes),
+                valueHandlerMap: getStatApiValueHandlerMap(
+                    pluginKeyAutoCompletes, 'plugin.Supervisor',
+                ),
+                suggestKeys: pluginKeyAutoCompletes,
+            },
         );
 
         const dataSource: DataSourceItem[] = [
@@ -186,7 +185,3 @@ export default {
     },
 };
 </script>
-
-<style scoped>
-
-</style>

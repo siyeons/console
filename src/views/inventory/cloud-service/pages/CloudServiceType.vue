@@ -54,7 +54,9 @@
                 >
                     <template slot="toolbox-bottom">
                         <div class="cst-toolbox-bottom">
-                            <PSearch :search-text.sync="apiHandler.gridTS.searchText.value" @onSearch="apiHandler.getData(true)" />
+                            <p-search v-model="apiHandler.gridTS.searchText.value"
+                                      @search="onSearch" @delete="onSearch()"
+                            />
                         </div>
                     </template>
                     <template #no-data>
@@ -127,15 +129,14 @@
 /* eslint-disable camelcase */
 
 import {
-    computed, getCurrentInstance, onMounted, reactive, ref, watch,
+    computed, getCurrentInstance, ref, watch,
 } from '@vue/composition-api';
 import PVerticalPageLayout from '@/views/containers/page-layout/VerticalPageLayout.vue';
 import { fluentApi } from '@/lib/fluent-api';
 import { ProviderStoreType, useStore } from '@/store/toolset';
 import PToolboxGridLayout from '@/components/organisms/layouts/toolbox-grid-layout/ToolboxGridLayout.vue';
 import {
-    DefaultQSGridQSProps,
-    RouteSearchGridFluentAPI,
+    SearchGridFluentAPI,
 } from '@/lib/api/grid';
 import { AxiosResponse } from 'axios';
 import { CloudServiceTypeListResp } from '@/lib/fluent-api/inventory/cloud-service-type';
@@ -143,18 +144,15 @@ import _ from 'lodash';
 import PI from '@/components/atoms/icons/PI.vue';
 import PGridLayout from '@/components/molecules/layouts/grid-layout/GridLayout.vue';
 import {
-    propsCopy,
+    makeQueryStringComputed, makeQueryStringComputeds, replaceQuery,
 } from '@/lib/router-query-string';
 import {
-    SelectGridLayoutToolSet,
-    DefaultSingleItemSelectGridQSProps,
-    DefaultMultiItemSelectGridQSProps,
+    GridLayoutState,
 } from '@/components/molecules/layouts/grid-layout/toolset';
 import { ExcelExportAPIToolSet } from '@/lib/api/add-on';
 import { STAT_OPERATORS } from '@/lib/fluent-api/statistics/type';
-import PSkeleton from '@/components/atoms/skeletons/Skeleton.vue';
 import PPageTitle from '@/components/organisms/title/page-title/PageTitle.vue';
-import PSearch from '@/components/molecules/search/Search.vue';
+import PSearch from '@/components/molecules/search/PSearch.vue';
 import PIconTextButton from '@/components/molecules/buttons/IconTextButton.vue';
 import { ComponentInstance } from '@vue/composition-api/dist/component';
 
@@ -167,13 +165,7 @@ export default {
         PI,
         PToolboxGridLayout,
         PGridLayout,
-        PSkeleton,
         PPageTitle,
-    },
-    props: {
-        ...DefaultQSGridQSProps,
-        ...DefaultMultiItemSelectGridQSProps,
-        ...DefaultSingleItemSelectGridQSProps,
     },
     setup(props, context) {
         const {
@@ -185,20 +177,14 @@ export default {
         const cstCountName = 'cloud_service_type_count';
         const cstCountApi = fluentApi.statisticsTest().resource().stat()
             .setResourceType('inventory.CloudServiceType')
-
             .addGroupKey('provider', 'provider')
-
             .setJoinKeys(['provider'], 0)
             .setJoinResourceType('inventory.CloudServiceType', 0)
             .addJoinGroupKey('provider', 'provider', 0)
             .addJoinGroupField(cstCountName, STAT_OPERATORS.count, undefined, 0);
-        const vm = getCurrentInstance() as ComponentInstance;
+        const vm: ComponentInstance = getCurrentInstance() as ComponentInstance;
         const selectProvider = ref('all');
-        const providerListState = new SelectGridLayoutToolSet(vm,
-            undefined,
-            undefined,
-            selectProvider,
-            undefined,
+        const providerListState = new GridLayoutState(
             {
                 items: computed(() => {
                     const result = [{
@@ -221,7 +207,8 @@ export default {
                 columnGap: '0.5rem',
                 rowGap: '0.5rem',
                 fixColumn: 1,
-            });
+            },
+        );
         const selectProviderName = computed(() => _.find(providerListState.state.items, { provider: selectProvider.value }).name);
         const totalResourceCountName = 'cloud_service_count';
 
@@ -269,7 +256,7 @@ export default {
             .setOnly('provider', 'group', 'name', 'tags.spaceone:icon', 'cloud_service_type_id')
             .setTransformer(getMetric);
 
-        const apiHandler = new RouteSearchGridFluentAPI(
+        const apiHandler = new SearchGridFluentAPI(
             listAction,
             {
                 cardClass: () => ['card-item', 'cst-card-item'],
@@ -278,12 +265,10 @@ export default {
                 excelVisible: false,
             },
             undefined,
-            undefined,
-            vm,
         );
 
         const clickCard = (item) => {
-            vm?.$router.push({
+            vm.$router.push({
                 name: 'cloudServicePage',
                 params: {
                     provider: item.provider,
@@ -294,7 +279,7 @@ export default {
         };
 
         const goToServiceAccount = () => {
-            vm?.$router.push({
+            vm.$router.push({
                 name: 'serviceAccount',
             });
         };
@@ -321,39 +306,57 @@ export default {
             providerTotalCount.value = data;
         };
 
-        const setFixFilter = (pro: string, handler: RouteSearchGridFluentAPI<any, any>, reset = true) => {
-            if (pro === 'all') {
-                handler.action = listAction.setFixFilter();
-            } else {
-                handler.action = listAction.setFixFilter(
-                    { key: 'provider', operator: '=', value: pro },
-                );
-            }
-            if (reset) {
-                handler.resetAll();
-            }
-        };
-        const routerHandler = async () => {
-            const prop = propsCopy(props);
-            await requestProvider();
-            providerListState.applyDisplayRouter(prop);
-            setFixFilter(prop.st || 'all', apiHandler, false);
-            apiHandler.applyAPIRouter(prop);
-            await apiHandler.getData();
+
+        /** Query String */
+        const queryRefs = {
+            provider: makeQueryStringComputed(selectProvider, { key: 'provider', disableAutoReplace: true }),
+            g_s: makeQueryStringComputed(ref(undefined), { key: 'g_s' }),
+            ...makeQueryStringComputeds(apiHandler.gridTS.syncState, {
+                pageSize: { key: 'g_ps', setter: Number },
+                thisPage: { key: 'g_p', setter: Number },
+            }),
         };
 
-        onMounted(async () => {
-            await routerHandler();
-            const getData = _.debounce(() => apiHandler.getData(), 50);
-            let ready = false;
-            watch(selectProvider, (after, before) => {
-                if (ready && after && after !== before) {
-                    setFixFilter(after, apiHandler);
-                    getData();
-                }
-            });
-            ready = true;
-        });
+        const onSearch = async (e) => {
+            if (!e) apiHandler.gridTS.searchText.value = '';
+            await apiHandler.getData();
+            queryRefs.g_s.value = e || undefined;
+        };
+
+        /** Init */
+        const init = async () => {
+            await requestProvider();
+
+            // init search text by query string
+            apiHandler.gridTS.searchText.value = queryRefs.g_s.value || '';
+
+
+            await apiHandler.getData();
+
+            // init search text by query string
+            apiHandler.gridTS.searchText.value = vm.$route.query.g_s as string;
+
+            if (providerListState.state.items.length > 0) {
+                // set selected provider
+                const res = queryRefs.provider.value;
+                selectProvider.value = res || providerListState.state.items[0].provider;
+
+                watch(selectProvider, _.debounce(async (after) => {
+                    if (!after) return;
+                    if (after === 'all') listAction.setFixFilter();
+                    else {
+                        apiHandler.action = listAction.setFixFilter(
+                            { key: 'provider', operator: '=', value: after },
+                        );
+                    }
+                    await apiHandler.getData();
+                    await replaceQuery('provider', after);
+                }, 50), { lazy: true });
+            }
+        };
+
+        init();
+
         return {
             selectProvider,
             selectProviderName,
@@ -367,7 +370,7 @@ export default {
             exportToolSet,
             newResourceCountName,
             totalResourceCountName,
-            routerHandler,
+            onSearch,
         };
     },
 
@@ -381,58 +384,56 @@ export default {
         @screen lg {
             @apply flex-row items-center;
         }
-        .search-bar{
+        .search-bar {
             @apply flex-1;
-            @screen lg{
+
+            @screen lg {
                 @apply max-w-1/2;
             }
         }
-        .checkbox{
+        .checkbox {
             @apply whitespace-no-wrap;
-
         }
     }
-    .provider-list{
+    .provider-list {
         @apply w-full px-4 pt-6;
-
     }
-    >>> .provider-card-item{
+    >>> .provider-card-item {
         @apply px-4 py-3 flex items-center justify-between bg-transparent;
 
-        .left{
+        .left {
             @apply flex items-center;
             .title {
                 @apply ml-4;
 
             }
         }
-        .right{
-            .total-count{
+        .right {
+            .total-count {
                 @apply w-10 flex h-6 ml-2 justify-center items-center text-white;
                 border-radius: 6.25rem;
                 border-width: 0.0625rem;
-
             }
         }
-        &.selected{
+        &.selected {
             @apply border-secondary bg-blue-200 text-secondary;
-            .left{
-                .title{
+            .left {
+                .title {
                     @apply text-secondary;
                 }
             }
         }
-
     }
 
-    >>> .cst-card-item{
+    >>> .cst-card-item {
         @apply p-6 flex flex-row justify-between items-center;
-        .left{
+
+        .left {
             @apply inline-flex items-center;
             img {
                 @apply rounded-sm overflow-hidden;
             }
-            .text-content{
+            .text-content {
                 @apply ml-4;
                 .title{
                     padding-bottom: .3rem;
@@ -459,8 +460,8 @@ export default {
                 }
             }
         }
-        .right{
-            @apply inline-flex items-center ;
+        .right {
+            @apply inline-flex items-center;
             .total-count {
                 @apply font-bold text-2xl;
             }
@@ -480,7 +481,7 @@ export default {
              cursor: pointer;
          }
     }
-    .pagetitle{
-        margin-bottom:0;
+    .pagetitle {
+        margin-bottom: 0;
     }
 </style>

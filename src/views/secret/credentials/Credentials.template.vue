@@ -4,7 +4,7 @@
                     <!-- use-total-count use-selected-count
                     :total-count="apiHandler.totalCount.value"
                     :selected-count="apiHandler.tableTS.selectState.selectItems.length" -->
-       
+
         <p-horizontal-layout>
             <template #container="{ height }">
                 <p-toolbox-table
@@ -53,7 +53,7 @@
                             Action
                         </PDropdownMenuBtn>
                         <div class="left-toolbox-item">
-                            <p-search :search-text.sync="searchText" @onSearch="getCredentials" />
+                            <p-search v-model="searchText" @search="getCredentials" />
                         </div>
                     </template>
                     <template #col-created_at-format="data">
@@ -136,7 +136,7 @@ const PDataTable = () => import('@/components/organisms/tables/data-table/DataTa
 const PHorizontalLayout = () => import('@/components/organisms/layouts/horizontal-layout/HorizontalLayout');
 const PToolboxTable = () => import('@/components/organisms/tables/toolbox-table/ToolboxTable');
 const PDropdownMenuBtn = () => import('@/components/organisms/dropdown/dropdown-menu-btn/DropdownMenuBtn');
-const PSearch = () => import('@/components/molecules/search/Search');
+const PSearch = () => import('@/components/molecules/search/PSearch');
 const PCredentialsDetail = () => import('@/views/secret/credentials/modules/CredentialsDetail');
 const PTableCheckModal = () => import('@/components/organisms/modals/action-modal/ActionConfirmModal');
 const PPageTitle = () => import('@/components/organisms/title/page-title/PageTitle.vue');

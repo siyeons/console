@@ -13,6 +13,7 @@
                     :vbind="{
                         responsiveStyle:{'height': height+'px', 'overflow-y':'auto','overflow-x':'auto'},
                         showTitle:false,
+                        resourceType: 'inventory.Server',
                         // exportFields:mergeFields,
                     }"
                 >
@@ -41,7 +42,10 @@
                 </SDynamicLayout>
             </template>
         </p-horizontal-layout>
-        <p-tab v-if="apiHandler.tableTS.selectState.isSelectOne" :tabs="singleItemTab.state.tabs" :active-tab.sync="singleItemTab.syncState.activeTab">
+        <p-tab v-if="apiHandler.tableTS.selectState.isSelectOne"
+               :tabs="singleItemTab.state.tabs"
+               :active-tab.sync="singleItemTab.syncState.activeTab"
+        >
             <template #detail>
                 <p-server-detail
                     :select-id="apiHandler.tableTS.selectState.firstSelectItem.server_id"
@@ -130,7 +134,7 @@
 /* eslint-disable camelcase */
 
 import {
-    computed, getCurrentInstance, onMounted, reactive, ref,
+    computed, getCurrentInstance, onMounted, reactive, ref, watch,
 } from '@vue/composition-api';
 import PStatus from '@/components/molecules/status/Status.vue';
 import {
@@ -147,17 +151,10 @@ import GeneralPageLayout from '@/views/containers/page-layout/GeneralPageLayout.
 import {
     defaultAdminLayout,
     defaultHistoryLayout,
-    DefaultQSTableQSProps,
-    RouteQuerySearchTableFluentAPI,
+    QuerySearchTableFluentAPI,
 } from '@/lib/api/table';
 import SProjectTreeModal from '@/components/organisms/modals/tree-api-modal/ProjectTreeModal.vue';
 import { fluentApi, MultiItemAction } from '@/lib/fluent-api';
-import {
-    getEnumValues,
-    getFetchValues, getValueHandler, makeValueHandlers,
-    makeValuesFetchHandler,
-} from '@/components/organisms/search/query-search-bar/autocompleteHandler';
-import { QSTableACHandlerArgs, QuerySearchTableACHandler } from '@/lib/api/auto-complete';
 import { ServerListResp, ServerModel } from '@/lib/fluent-api/inventory/server';
 import { useStore } from '@/store/toolset';
 import { AxiosResponse } from 'axios';
@@ -171,16 +168,26 @@ import { DynamicLayoutApiProp } from '@/components/organisms/dynamic-view/dynami
 import PPageTitle from '@/components/organisms/title/page-title/PageTitle.vue';
 import { ComponentInstance } from '@vue/composition-api/dist/component';
 import {
-    propsCopy,
+    makeQueryStringComputed,
+    makeQueryStringComputeds, numberArrayToOriginal,
+    queryTagsToOriginal, queryTagsToQueryString, replaceQuery,
 } from '@/lib/router-query-string';
 import {
-    DefaultMultiItemTabBarQSProps,
-    DefaultMultiItemTabBarQSPropsName, DefaultSingleItemTabBarQSProps,
-    RouterTabBarToolSet,
+    TabBarState,
 } from '@/components/molecules/tabs/tab-bar/toolset';
 import { MonitoringToolSet } from '@/components/organisms/monitoring/Monitoring.toolset';
 import { get } from 'lodash';
 import { ProjectItemResp } from '@/lib/fluent-api/identity/project';
+import {
+    getEnumValueHandler,
+    getKeyHandler, QueryItem,
+} from '@/components/organisms/search/query-search/PQuerySearch.toolset';
+import {
+    getStatApiValueHandler,
+    getStatApiValueHandlerMap,
+} from '@/lib/api/query-search';
+import { StatQueryAPI } from '@/lib/fluent-api/statistics/toolset';
+import { QueryTag } from '@/components/organisms/search/query-search-tags/PQuerySearchTags.toolset';
 
 
 export default {
@@ -202,12 +209,6 @@ export default {
         STagsPanel,
         PPageTitle,
     },
-    props: {
-        ...DefaultQSTableQSProps,
-        ...DefaultSingleItemTabBarQSProps,
-        ...DefaultMultiItemTabBarQSProps,
-        // ...BaseRouterProps,
-    },
     setup(props, context) {
         const vm = getCurrentInstance() as ComponentInstance;
         const filedMap = {
@@ -224,34 +225,8 @@ export default {
             options: {
                 fields: baseTable.options.fields.map(field => filedMap[field.key] || field),
             },
-
         }));
 
-        class ACHandler extends QuerySearchTableACHandler {
-            constructor(args: QSTableACHandlerArgs) {
-                super(args);
-                this.HandlerMap.value = [
-                    ...makeValueHandlers([
-                        'server_id', 'name', 'primary_ip_address',
-                        'data.compute.instance_name', 'data.compute.instance_id',
-                        'data.vm.vm_name', 'data.vm.vm_id',
-                    ], fluentApi
-                        .statisticsTest()
-                        .resource()
-                        .stat()
-                        .setResourceType('inventory.Server')),
-                    getEnumValues('state', ['PENDING', 'INSERVICE', 'MAINTENANCE', 'CLOSED', 'DELETED']),
-                    getEnumValues('os_type', ['LINUX', 'WINDOWS']),
-                    getEnumValues('collection_info.state', ['MANUAL', 'ACTIVE', 'DISCONNECTED']),
-                    getEnumValues('server_type', ['BAREMETAL', 'VM', 'HYPERVISOR', 'UNKNOWN']),
-                    getValueHandler('project_id', fluentApi
-                        .statisticsTest()
-                        .resource()
-                        .stat()
-                        .setResourceType('identity.Project')),
-                ];
-            }
-        }
 
         const args = {
             keys: [
@@ -279,7 +254,7 @@ export default {
 
                 return result;
             });
-        const apiHandler = new RouteQuerySearchTableFluentAPI(
+        const apiHandler = new QuerySearchTableFluentAPI(
             action,
             {
                 selectable: true,
@@ -292,8 +267,23 @@ export default {
                 excelVisible: true,
             },
             undefined,
-            { handlerClass: ACHandler, args },
-            vm,
+            {
+                keyHandler: getKeyHandler(args.keys),
+                valueHandlerMap: {
+                    ...getStatApiValueHandlerMap([
+                        'server_id', 'name', 'primary_ip_address',
+                        'data.compute.instance_name', 'data.compute.instance_id',
+                        'data.vm.vm_name', 'data.vm.vm_id',
+                    ],
+                    'inventory.Server'),
+                    state: getEnumValueHandler(['PENDING', 'INSERVICE', 'MAINTENANCE', 'CLOSED', 'DELETED']),
+                    os_type: getEnumValueHandler(['LINUX', 'WINDOWS']),
+                    'collection_info.state': getEnumValueHandler(['MANUAL', 'ACTIVE', 'DISCONNECTED']),
+                    server_type: getEnumValueHandler(['BAREMETAL', 'VM', 'HYPERVISOR', 'UNKNOWN']),
+                    project_id: getStatApiValueHandler('identity.Project'),
+                },
+                suggestKeys: args.suggestKeys,
+            },
         );
 
 
@@ -321,10 +311,7 @@ export default {
         context.parent);
 
 
-        const singleItemTab = new RouterTabBarToolSet(
-            vm,
-            undefined,
-            computed(() => apiHandler.tableTS.selectState.isSelectOne),
+        const singleItemTab = new TabBarState(
             {
                 tabs: computed(() => makeTrItems([
                     ['detail', 'TAB.DETAILS'],
@@ -335,20 +322,22 @@ export default {
                 ],
                 context.parent)),
             },
+            {
+                activeTab: 'detail',
+            },
         );
-        singleItemTab.syncState.activeTab = 'detail';
 
-        const multiItemTab = new RouterTabBarToolSet(vm,
-            DefaultMultiItemTabBarQSPropsName,
-            computed(() => apiHandler.tableTS.selectState.isSelectMulti),
+        const multiItemTab = new TabBarState(
             {
                 tabs: makeTrItems([
                     ['data', 'TAB.DATA'],
                     ['admin', 'TAB.MEMBER'],
                     ['monitoring', 'TAB.MONITORING'],
                 ], context.parent),
-            });
-        multiItemTab.syncState.activeTab = 'data';
+            }, {
+                activeTab: 'data',
+            },
+        );
 
 
         const checkTableModalState = reactive({
@@ -519,17 +508,34 @@ export default {
             'inventory.Server',
             computed(() => apiHandler.tableTS.selectState.selectItems),
         );
-        const routerHandler = async () => {
-            const prop = propsCopy(props);
-            apiHandler.applyAPIRouter(prop);
-            await apiHandler.getData();
-            apiHandler.applyDisplayRouter(prop);
-            singleItemTab.applyDisplayRouter(prop);
-            multiItemTab.applyDisplayRouter(prop);
+
+
+        // TODO: selectIndex reset problem caused by toolset getData
+
+        const queryRefs = {
+            f: makeQueryStringComputed(apiHandler.tableTS.querySearch.tags,
+                {
+                    key: 'f',
+                    setter: queryTagsToOriginal,
+                    getter: queryTagsToQueryString,
+                }),
+            ...makeQueryStringComputeds(apiHandler.tableTS.syncState, {
+                pageSize: { key: 'ps', setter: Number },
+                thisPage: { key: 'p', setter: Number },
+                sortBy: { key: 'sb' },
+                sortDesc: { key: 'sd', setter: Boolean },
+                selectIndex: {
+                    key: 'sl',
+                    setter: numberArrayToOriginal,
+                },
+            }),
+            ...makeQueryStringComputeds(multiItemTab.syncState, {
+                activeTab: { key: 'mt' },
+            }),
+            ...makeQueryStringComputeds(singleItemTab.syncState, {
+                activeTab: { key: 'st' },
+            }),
         };
-        onMounted(async () => {
-            await routerHandler();
-        });
 
         return {
             singleItemTab,
@@ -565,7 +571,6 @@ export default {
             collectModalState,
             monitoringTS,
             mainTableLayout,
-            routerHandler,
         };
     },
 };

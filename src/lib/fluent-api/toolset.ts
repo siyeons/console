@@ -139,6 +139,9 @@ export const OPERATOR_MAP = Object.freeze({
     '>=': 'gte',
     '<': 'lt',
     '<=': 'lte',
+    '=': 'in', // merge operator
+    '!=': 'not_in', // merge operator
+    $: 'regex',
     td_lt: 'timediff_lt',
     td_gt: 'timediff_gt',
     td_lte: 'timediff_lte',
@@ -149,11 +152,9 @@ export const OPERATOR_MAP = Object.freeze({
     not_contain: 'not_contain', // merge operator
     eq: 'in', // merge operator
     not_eq: 'not_in', // merge operator
-    '=': 'in', // merge operator
-    '!=': 'not_in', // merge operator
-    $: 'regex',
     sum: 'sum',
 });
+
 const MERGE_OPERATOR_SET = new Set(['contain_in', 'not_contain_in', 'in', 'not_in']);
 
 type MergeQueryType = { [k: string]: ShortFilterType };

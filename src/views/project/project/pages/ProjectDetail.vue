@@ -105,7 +105,6 @@ import {
 import GeneralPageLayout from '@/views/containers/page-layout/GeneralPageLayout.vue';
 import PDynamicView from '@/components/organisms/dynamic-view/dynamic-view/DynamicView.vue';
 
-import PI from '@/components/atoms/icons/PI.vue';
 import PIconButton from '@/components/molecules/buttons/IconButton.vue';
 import PCopyButton from '@/components/molecules/buttons/CopyButton.vue';
 import PTab from '@/components/organisms/tabs/tab/Tab.vue';
@@ -120,7 +119,6 @@ import {
 } from '@/lib/api/table';
 import { DictPanelAPI } from '@/lib/api/dict';
 import STagsPanel from '@/components/organisms/panels/tag-panel/STagsPanel.vue';
-import { QSTableACHandlerArgs, QuerySearchTableACHandler } from '@/lib/api/auto-complete';
 import SProjectCreateFormModal from '@/views/project/project/modules/ProjectCreateFormModal.vue';
 import SProjectMemberAddModal from '@/views/project/project/modules/ProjectMemberAddModal.vue';
 import { ProjectModel } from '@/lib/fluent-api/identity/project';
@@ -130,12 +128,12 @@ import ProjectDashboard from '@/views/project/project/pages/ProjectDashboard.vue
 import PButtonModal from '@/components/organisms/modals/button-modal/ButtonModal.vue';
 import { showErrorMessage } from '@/lib/util';
 import {
-    DefaultSingleItemTabBarQSProps,
-    RouterTabBarToolSet,
+    TabBarState,
 } from '@/components/molecules/tabs/tab-bar/toolset';
-import { propsCopy } from '@/lib/router-query-string';
+import { makeQueryStringComputeds } from '@/lib/router-query-string';
 import { ComponentInstance } from '@vue/composition-api/dist/component';
-import { makeValueHandlers } from '@/components/organisms/search/query-search-bar/autocompleteHandler';
+import { getKeyHandler } from '@/components/organisms/search/query-search/PQuerySearch.toolset';
+import { getStatApiValueHandlerMap } from '@/lib/api/query-search';
 
 export default {
     name: 'ProjectDetail',
@@ -154,9 +152,6 @@ export default {
         SProjectCreateFormModal,
         SProjectMemberAddModal,
         PIconTextButton,
-    },
-    props: {
-        ...DefaultSingleItemTabBarQSProps,
     },
     setup(props, context) {
         const vm = getCurrentInstance() as ComponentInstance;
@@ -189,10 +184,7 @@ export default {
             }
         });
 
-        const singleItemTab = new RouterTabBarToolSet(
-            vm,
-            undefined,
-            undefined,
+        const singleItemTab = new TabBarState(
             {
                 tabs: computed(() => makeTrItems([
                     ['summary', 'COMMON.SUMMARY', { keepAlive: true }],
@@ -201,47 +193,14 @@ export default {
                 ],
                 context.parent)),
             },
-        );
-        singleItemTab.syncState.activeTab = 'summary';
-
-        // Auto Complete Handler for query search bar
-        const projectKeyAutoCompletes = ['name'];
-        const projectACHandlerMeta = {
-            handlerClass: QuerySearchTableACHandler,
-            args: {
-                keys: projectKeyAutoCompletes,
-                suggestKeys: projectKeyAutoCompletes,
+            {
+                activeTab: 'summary',
             },
-        };
+        );
 
         // List api Handler for query search table
         const MemberListAction = fluentApi.identity().project().memberList().setId(projectId.value);
 
-        class ACHandler extends QuerySearchTableACHandler {
-            constructor(args: QSTableACHandlerArgs) {
-                super(args);
-                this.HandlerMap.value = [
-                    ...makeValueHandlers(['user_id'],
-                        // fluentApi
-                        //     .statisticsTest()
-                        //     .resource()
-                        //     .stat()
-                        //     .setResourceType('identity.Project')
-                        //     .setFixFilter({
-                        //         key: 'project_id',
-                        //         value: projectId.value,
-                        //         operator: FILTER_OPERATOR.in,
-                        //     })),
-                        MemberListAction),
-                ];
-            }
-        }
-        const args = {
-            keys: [
-                'user_id',
-            ],
-            suggestKeys: ['user_id'],
-        };
 
         const apiHandler = new QuerySearchTableFluentAPI(MemberListAction, {
             shadow: false,
@@ -249,7 +208,11 @@ export default {
             padding: true,
             selectable: true,
             dragable: true,
-        }, undefined, { handlerClass: ACHandler, args });
+        }, undefined, {
+            keyHandler: getKeyHandler(['user_id', 'name']),
+            valueHandlerMap: getStatApiValueHandlerMap(['user_id', 'name'], ''),
+            suggestKeys: ['user_id', 'name'],
+        });
 
         const dataSource: DataSourceItem[] = [
             { name: 'ID', key: 'user_info.user_id' },
@@ -306,7 +269,7 @@ export default {
                     showErrorMessage('Delete Project Fail', e, context.root);
                 })
                 .finally(() => {
-                        vm?.$router.go(-1);
+                    vm.$router.go(-1);
                 });
             formState.projectDeleteFormVisible = false;
         };
@@ -318,6 +281,7 @@ export default {
 
         const projectEditFormConfirm = (input) => {
             fluentApi.identity().project().update().setParameter({
+                // eslint-disable-next-line camelcase
                 project_id: projectId.value,
                 ...input,
             })
@@ -397,17 +361,8 @@ export default {
             deleteTS.syncState.visible = false;
         };
 
-        const routerHandler = async () => {
-            const prop = propsCopy(props);
-            singleItemTab.applyDisplayRouter(prop);
-        };
-        onMounted(async () => {
-            await routerHandler();
-            // fluentApi.identity().project().get().setId(projectId.value)
-            //     .execute()
-            //     .then((resp) => {
-            //         state.projectGroupId = resp.data.project_group_info.project_group_id;
-            //     });
+        makeQueryStringComputeds(singleItemTab.syncState, {
+            activeTab: { key: 'tab' },
         });
 
         return {
@@ -416,7 +371,6 @@ export default {
             apiHandler,
             dataSource,
             item,
-            // ...toRefs(singleItemTab),
             tagsApi,
             ...toRefs(formState),
             deleteTS,

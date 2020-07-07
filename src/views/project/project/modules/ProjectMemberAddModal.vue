@@ -44,6 +44,8 @@ import { reactive, toRefs } from '@vue/composition-api';
 import PBoxLayout from '@/components/molecules/layouts/box-layout/BoxLayout.vue';
 import { showErrorMessage } from '@/lib/util';
 import { makeValueHandlers } from '@/components/organisms/search/query-search-bar/autocompleteHandler';
+import { getKeyHandler } from '@/components/organisms/search/query-search/PQuerySearch.toolset';
+import { getStatApiValueHandlerMap } from '@/lib/api/query-search';
 
 export default {
     name: 'ProjectMemberAddModal',
@@ -81,42 +83,11 @@ export default {
             tagTools: tagList(null),
         });
         const proxyVisible = makeProxy('visible', props, context.emit);
-        // const memberKeyAutoCompletes = ['user_id', 'name', 'email'];
-        const project_id = context.root.$route.params.id;
+        const projectId = context.root.$route.params.id;
 
-        // const memberACHandlerMeta = {
-        //     handlerClass: QuerySearchTableACHandler,
-        //     args: {
-        //         keys: memberKeyAutoCompletes,
-        //         suggestKeys: memberKeyAutoCompletes,
-        //     },
-        // };
 
         // List api Handler for query search table
-
-        class ACHandler extends QuerySearchTableACHandler {
-            constructor(args: QSTableACHandlerArgs) {
-                super(args);
-                this.HandlerMap.value = [
-                    // ...makeValueHandlers<QueryAPI<any,any>>([
-                    //     'name',
-                    // ], projectGroupAPI.listProjects().setRecursive(true)),
-                    ...makeValueHandlers(['user_id', 'name', 'email'],
-                        fluentApi
-                            .statisticsTest()
-                            .resource()
-                            .stat()
-                            .setResourceType('identity.User')),
-                ];
-            }
-        }
-        const args = {
-            keys: [
-                'user_id', 'name', 'email',
-            ],
-            suggestKeys: ['user_id', 'name', 'email'],
-        };
-
+        const keys = ['user_id', 'name', 'email'];
         const MemberListAction = fluentApi.identity().user().list();
         const apiHandler = new QuerySearchTableFluentAPI(MemberListAction, {
             shadow: false,
@@ -124,7 +95,11 @@ export default {
             padding: true,
             selectable: false,
             dragable: false,
-        }, undefined, { handlerClass: ACHandler, args });
+        }, undefined, {
+            keyHandler: getKeyHandler(keys),
+            valueHandlerMap: getStatApiValueHandlerMap(keys, 'identity.User'),
+            suggestKeys: keys,
+        });
 
         const dataSource: DataSourceItem[] = [
             { name: 'ID', key: 'user_id' },
@@ -138,7 +113,7 @@ export default {
 
         const confirm = () => {
             const users = formState.tagTools.tags;
-            fluentApi.identity().project().addMember().setId(project_id)
+            fluentApi.identity().project().addMember().setId(projectId)
                 .setSubIds(users)
                 .execute()
                 .then(() => {

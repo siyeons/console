@@ -9,7 +9,7 @@
                          @click="openProjectGroupForm(true)"
                     />
                 </div>
-                <p-hr style="width:100%;" />
+                <p-hr style="width: 100%;" />
                 <p-tree-node v-for="(node, idx) in treeApiHandler.ts.metaState.nodes" :key="idx"
                              v-bind="treeApiHandler.ts.state"
                              :data.sync="node.data"
@@ -88,10 +88,13 @@
                                     </PIconTextButton>
                                 </div>
                                 <div class="tool-left-search">
-                                    <p-query-search-bar
-                                        :search-text.sync="apiHandler.gridTS.querySearch.state.searchText"
-                                        :autocomplete-handler="apiHandler.gridTS.querySearch.acHandler.value"
-                                        @newQuery="apiHandler.gridTS.querySearch.addTag"
+                                    <p-query-search v-model="apiHandler.gridTS.querySearch.state.searchText"
+                                                    v-bind="apiHandler.gridTS.querySearch.state"
+                                                    @menu:show="apiHandler.gridTS.querySearch.onMenuShow"
+                                                    @key:input="apiHandler.gridTS.querySearch.onKeyInput"
+                                                    @value:input="apiHandler.gridTS.querySearch.onValueInput"
+                                                    @key:select="apiHandler.gridTS.querySearch.onKeySelect"
+                                                    @search="apiHandler.gridTS.querySearch.onSearch"
                                     />
                                 </div>
                             </div>
@@ -108,8 +111,8 @@
                             <p-query-search-tags
                                 class="py-2"
                                 :tags="apiHandler.gridTS.querySearch.tags.value"
-                                @deleteTag="apiHandler.gridTS.querySearch.deleteTag"
-                                @deleteAllTags="apiHandler.gridTS.querySearch.deleteAllTags"
+                                @delete:tag="apiHandler.gridTS.querySearch.deleteTag"
+                                @delete:all="apiHandler.gridTS.querySearch.deleteAllTags"
                             />
                         </div>
                     </template>
@@ -240,7 +243,7 @@ import {
 } from '@vue/composition-api';
 import PVerticalPageLayout from '@/views/containers/page-layout/VerticalPageLayout.vue';
 
-import _ from 'lodash';
+import _, { isEqual } from 'lodash';
 import PToolboxGridLayout from '@/components/organisms/layouts/toolbox-grid-layout/ToolboxGridLayout.vue';
 
 import PI from '@/components/atoms/icons/PI.vue';
@@ -252,31 +255,36 @@ import PButton from '@/components/atoms/buttons/Button.vue';
 import PIconTextButton from '@/components/molecules/buttons/IconTextButton.vue';
 import PSkeleton from '@/components/atoms/skeletons/Skeleton.vue';
 import {
-    FILTER_OPERATOR, fluentApi, ListAction, QueryAPI,
+    FILTER_OPERATOR, fluentApi,
 } from '@/lib/fluent-api';
 import { UnwrapRef } from '@vue/composition-api/dist/reactivity';
 import { ProjectItemResp, ProjectListResp } from '@/lib/fluent-api/identity/project';
 import { AxiosResponse } from 'axios';
 import { useStore } from '@/store/toolset';
 import { ProjectSummaryResp } from '@/lib/fluent-api/statistics';
-import { DefaultQSGridQSProps, RouteQuerySearchGridFluentAPI } from '@/lib/api/grid';
-import { QSTableACHandlerArgs, QuerySearchTableACHandler } from '@/lib/api/auto-complete';
-import {
-    getValueHandler,
-    makeValueHandlers,
-} from '@/components/organisms/search/query-search-bar/autocompleteHandler';
-import PQuerySearchBar from '@/components/organisms/search/query-search-bar/QuerySearchBar.vue';
-import PQuerySearchTags from '@/components/organisms/search/query-search-tags/QuerySearchTags.vue';
+import { DefaultQSGridQSProps, QuerySearchGridFluentAPI } from '@/lib/api/grid';
+import PQuerySearchTags from '@/components/organisms/search/query-search-tags/PQuerySearchTags.vue';
 import PButtonModal from '@/components/organisms/modals/button-modal/ButtonModal.vue';
 import SProjectCreateFormModal from '@/views/project/project/modules/ProjectCreateFormModal.vue';
 import SProjectGroupCreateFormModal from '@/views/project/project/modules/ProjectGroupCreateFormModal.vue';
 import { STAT_OPERATORS } from '@/lib/fluent-api/statistics/type';
 import { showErrorMessage } from '@/lib/util';
 import PTreeNode from '@/components/molecules/tree/PTreeNode.vue';
-import { DefaultQSTreeProps, ProjectNodeState, RouteProjectTreeFluentAPI } from '@/lib/api/tree-node';
-import { getBaseNodeState, getDefaultNode, TreeItem } from '@/components/molecules/tree/PTreeNode.toolset';
+import {
+    DefaultQSTreeProps,
+    ProjectNodeState,
+    ProjectTreeFluentAPI,
+} from '@/lib/api/tree-node';
+import {
+    getBaseNodeState, getDefaultNode, getTreeItem, TreeItem, TreeNode,
+} from '@/components/molecules/tree/PTreeNode.toolset';
 import { ComponentInstance } from '@vue/composition-api/dist/component';
-import { propsCopy } from '@/lib/router-query-string';
+import {
+    makeQueryStringComputeds,
+} from '@/lib/router-query-string';
+import PQuerySearch from '@/components/organisms/search/query-search/PQuerySearch.vue';
+import { getKeyHandler } from '@/components/organisms/search/query-search/PQuerySearch.toolset';
+import { getStatAction, getStatApiValueHandlerMap } from '@/lib/api/query-search';
 
     interface ProjectCardData{
         projectGroupName: string;
@@ -298,6 +306,7 @@ import { propsCopy } from '@/lib/router-query-string';
 export default {
     name: 'ProjectPage',
     components: {
+        PQuerySearch,
         PTreeNode,
         PVerticalPageLayout,
         PButton,
@@ -306,7 +315,6 @@ export default {
         PIconButton,
         PPageTitle,
         PCheckBox,
-        PQuerySearchBar,
         PQuerySearchTags,
         PSkeleton,
         PToolboxGridLayout,
@@ -345,28 +353,20 @@ export default {
 
         const { provider } = useStore();
         provider.getProvider();
-        const vm: any = getCurrentInstance() as ComponentInstance;
+        const vm: ComponentInstance = getCurrentInstance() as ComponentInstance;
 
         /**
              Tree, Project, Statistics API Handler Declaration
              */
         const projectAPI = fluentApi.identity().project();
-        // projectAPI.favorite().create().setParameter({ projectId: ['test'] }).execute()
-        //     .then(res => console.debug('favorite create', res));
-        // projectAPI.favorite().get().execute().then(res => console.debug('favorite', res));
-        // projectAPI.favorite().delete().execute().then(res => console.debug('favorite', res));
-        // projectAPI.favorite().update().setParameter({ projectGroupId: ['hahaha'] }).execute()
-        //     .then(res => console.debug('favorite', res));
         const treeAction = projectAPI.tree()
             .setSortBy('name')
             .setSortDesc(false)
             .setExcludeProject();
         const treeSearchAction = projectAPI.treeSearch();
-        const treeApiHandler = new RouteProjectTreeFluentAPI({
+        const treeApiHandler = new ProjectTreeFluentAPI({
             treeAction, treeSearchAction,
-        }, {
-
-        }, vm, undefined, undefined);
+        });
 
         const projectGroupAPI = fluentApi.identity().projectGroup();
         const statisticsAPI = fluentApi.statisticsTest().resource().stat()
@@ -444,36 +444,8 @@ export default {
         const listAction = projectGroupAPI.listProjects().setTransformer(getCard).setIncludeProvider();
         const isShow = computed(() => treeApiHandler.ts.metaState.firstSelectedNode);
 
-        class ACHandler extends QuerySearchTableACHandler {
-            constructor(args: QSTableACHandlerArgs) {
-                super(args);
-                this.HandlerMap.value = [
-                    // ...makeValueHandlers<QueryAPI<any,any>>([
-                    //     'name',
-                    // ], projectGroupAPI.listProjects().setRecursive(true)),
-                    ...makeValueHandlers(['name', 'project_id'],
-                        fluentApi
-                            .statisticsTest()
-                            .resource()
-                            .stat()
-                            .setResourceType('identity.Project')
-                            .setFixFilter({
-                                key: 'project_group_id',
-                                value: treeApiHandler.ts.metaState.firstSelectedNode.node.data.id,
-                                operator: FILTER_OPERATOR.in,
-                            })),
-                ];
-            }
-        }
-        const args = {
-            keys: [
-                'project_id',
-                'name',
-            ],
-            suggestKeys: ['project_id', 'name'],
-        };
 
-        const apiHandler = new RouteQuerySearchGridFluentAPI(
+        const apiHandler = new QuerySearchGridFluentAPI(
             listAction,
             {
                 cardClass: () => ['card-item', 'project-card-item'],
@@ -481,9 +453,23 @@ export default {
                 cardHeight: '15rem',
             },
             undefined,
-            { handlerClass: ACHandler, args },
+            {
+                keyHandler: getKeyHandler(['name', 'project_id']),
+                valueHandlerMap: getStatApiValueHandlerMap(
+                    ['name', 'project_id'],
+                    'identity.Project',
+                    (action, ...args) => {
+                        const api = action.setFixFilter({
+                            key: 'project_group_id',
+                            value: treeApiHandler.ts.metaState.firstSelectedNode.node.data.id,
+                            operator: FILTER_OPERATOR.in,
+                        });
+                        return getStatAction(api, ...args);
+                    },
+                ),
+                suggestKeys: ['name', 'project_id'],
+            },
             isShow,
-            vm,
         );
 
         /**
@@ -495,7 +481,7 @@ export default {
             if (parent) { projectState.parentGroup = parent.node.data.name; } else { projectState.parentGroup = ''; }
         };
 
-
+        // list projects when selected project group changed
         watch(() => treeApiHandler.ts.metaState.firstSelectedNode, async (after, before) => {
             if ((after && !before) || (after && after.node.data.id !== before.node.data.id)) {
                 formState.isRoot = false;
@@ -553,6 +539,7 @@ export default {
             formState.modalContent = 'Are you sure you want to delete this Project group?';
         };
 
+        // TODO: change to async/await
         const projectGroupDeleteFormConfirm = () => {
             // @ts-ignore
             fluentApi.identity().projectGroup().delete().setId(treeApiHandler.ts.metaState.firstSelectedNode.node.data.id)
@@ -588,6 +575,7 @@ export default {
             formState.projectGroupFormVisible = true;
         };
 
+        // TODO: change to async/await
         const projectGroupFormConfirm = async (item) => {
             if (!formState.updateMode) {
                 let projectGroupId;
@@ -663,6 +651,8 @@ export default {
         const openProjectForm = () => {
             formState.projectFormVisible = true;
         };
+
+        // TODO: change to async/await
         const projectFormConfirm = (item) => {
             fluentApi.identity().project().create().setParameter({
                 // @ts-ignore
@@ -689,17 +679,38 @@ export default {
             formState.projectFormVisible = false;
         };
 
-        const routerHandler = async () => {
-            const prop = propsCopy(props);
-            treeApiHandler.applyAPIRouter(prop);
-            await treeApiHandler.applyDisplayRouter(prop);
-            apiHandler.applyAPIRouter(prop);
-            await apiHandler.getData();
+        makeQueryStringComputeds(treeApiHandler.ts.metaState, {
+            firstSelectedNode: {
+                key: 'select_pg',
+                getter: (item: null|TreeItem<ProjectItemResp, ProjectNodeState>) => {
+                    if (item) return item.node.data.id;
+                    return null;
+                },
+                disableSetter: true,
+            },
+        });
+
+        const init = async () => {
+            const pgId = vm.$route.query.select_pg as string|null;
+            if (pgId) {
+                await treeApiHandler.getSearchData(pgId, 'PROJECT_GROUP');
+                if (treeApiHandler.ts.metaState.firstSelectedNode) {
+                    treeApiHandler.ts.setNodeState(
+                        treeApiHandler.ts.metaState.firstSelectedNode, { expanded: false },
+                    );
+                }
+            } else {
+                await treeApiHandler.defaultGetData();
+                if (treeApiHandler.ts.metaState.nodes[0]) {
+                    const item = getTreeItem(0, 0, treeApiHandler.ts.metaState.nodes[0]);
+                    treeApiHandler.ts.metaState.selectedNodes = [item];
+                    treeApiHandler.ts.setNodeState(item, { selected: true });
+                }
+            }
         };
 
-        onMounted(async () => {
-            await routerHandler();
-        });
+        init();
+
 
         return {
             treeApiHandler,
@@ -720,7 +731,6 @@ export default {
             projectFormConfirm,
             openProjectGroupForm,
             projectGroupFormConfirm,
-            routerHandler,
         };
     },
 };
