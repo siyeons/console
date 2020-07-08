@@ -44,7 +44,7 @@ export const replaceQuery = async (key: string, value: RouteQueryString) => {
 export const getQueryStringComputed = (
     item: Ref<any>,
     converter: QueryStringConverter,
-) => {
+): Ref<any> => {
     if (converter.disableSetter) {
         return computed<RouteQueryString>(() => (converter.getter ? converter.getter(item.value) : item.value));
     }
@@ -60,7 +60,6 @@ export const getQueryStringComputed = (
 
 export const setQueryStringRefWatchable = (queryRef: Ref<any>, key: string) => {
     const stop = watch(() => queryRef.value, debounce(async (val: string) => {
-        // console.debug('watched', key, val);
         await replaceQuery(key, val);
     }, 100), { lazy: true });
 
@@ -82,7 +81,7 @@ export const makeQueryStringComputed = (
 
     const query = initQuery || router.currentRoute.query;
     if (query[converter.key] && !converter.disableSetter) {
-        item.value = query[converter.key];
+        queryRef.value = query[converter.key];
     }
 
     return queryRef;
@@ -150,12 +149,17 @@ export const numberArrayToOriginal: Setter = (val: RouteQueryString): number[] =
     return [];
 };
 
-export const queryTagsToQueryString: Getter = (tags: QueryTag[]) => tags.map((tag) => {
-    let item;
-    if (tag.key) item = `${tag.key.name}:${tag.operator}${tag.value}`;
-    else item = `${tag.value}`;
-    return item;
-});
+export const queryTagsToQueryString: Getter = (tags: QueryTag[]): RouteQueryString => {
+    if (Array.isArray(tags)) {
+        return tags.map((tag) => {
+            let item;
+            if (tag.key) item = `${tag.key.name}:${tag.operator}${tag.value}`;
+            else item = `${tag.value}`;
+            return item;
+        });
+    }
+    return null;
+};
 
 export const queryTagsToOriginal: Setter = (queryString: RouteQueryString): QueryTag[] => {
     if (!queryString) return [];
