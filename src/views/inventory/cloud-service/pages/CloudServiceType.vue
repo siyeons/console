@@ -237,24 +237,24 @@ export default {
             .setJoinFilter([{ key: 'created_at', value: 'now/d', operator: 'td_gte' }], 1);
 
         const statData = ref<null|any>(null);
-        const getMetric = (resp: AxiosResponse<CloudServiceTypeListResp>) => {
-            const ids = resp.data.results.map(item => item.cloud_service_type_id);
-            statData.value = null;
-            metricAPI.setFilter(
-                { key: 'cloud_service_type_id', operator: '=', value: ids },
-            ).execute().then((rp) => {
-                const data = {};
-                rp.data.results.forEach((item) => {
-                    data[item.cloud_service_type_id] = item;
-                });
-                statData.value = data;
-            });
-            return resp;
-        };
+        // const getMetric = (resp: AxiosResponse<CloudServiceTypeListResp>) => {
+        //     const ids = resp.data.results.map(item => item.cloud_service_type_id);
+        //     statData.value = null;
+        //     metricAPI.setFilter(
+        //         { key: 'cloud_service_type_id', operator: '=', value: ids },
+        //     ).execute().then((rp) => {
+        //         const data = {};
+        //         rp.data.results.forEach((item) => {
+        //             data[item.cloud_service_type_id] = item;
+        //         });
+        //         statData.value = data;
+        //     });
+        //     return resp;
+        // };
 
         const listAction = fluentApi.inventory().cloudServiceType().list()
             .setOnly('provider', 'group', 'name', 'tags.spaceone:icon', 'cloud_service_type_id')
-            .setTransformer(getMetric);
+            // .setTransformer(getMetric);
 
         const apiHandler = new SearchGridFluentAPI(
             listAction,
