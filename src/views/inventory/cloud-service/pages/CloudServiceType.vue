@@ -237,24 +237,9 @@ export default {
             .setJoinFilter([{ key: 'created_at', value: 'now/d', operator: 'td_gte' }], 1);
 
         const statData = ref<null|any>(null);
-        // const getMetric = (resp: AxiosResponse<CloudServiceTypeListResp>) => {
-        //     const ids = resp.data.results.map(item => item.cloud_service_type_id);
-        //     statData.value = null;
-        //     metricAPI.setFilter(
-        //         { key: 'cloud_service_type_id', operator: '=', value: ids },
-        //     ).execute().then((rp) => {
-        //         const data = {};
-        //         rp.data.results.forEach((item) => {
-        //             data[item.cloud_service_type_id] = item;
-        //         });
-        //         statData.value = data;
-        //     });
-        //     return resp;
-        // };
 
         const listAction = fluentApi.inventory().cloudServiceType().list()
             .setOnly('provider', 'group', 'name', 'tags.spaceone:icon', 'cloud_service_type_id')
-            // .setTransformer(getMetric);
 
         const apiHandler = new SearchGridFluentAPI(
             listAction,
@@ -379,8 +364,9 @@ export default {
 </script>
 
 <style lang="postcss" scoped>
-    .cst-toolbox-bottom{
+    .cst-toolbox-bottom {
         @apply flex flex-col-reverse items-start justify-between w-full mb-4;
+
         @screen lg {
             @apply flex-row items-center;
         }
@@ -405,7 +391,6 @@ export default {
             @apply flex items-center;
             .title {
                 @apply ml-4;
-
             }
         }
         .right {
@@ -435,12 +420,12 @@ export default {
             }
             .text-content {
                 @apply ml-4;
-                .title{
-                    padding-bottom: .3rem;
+                .title {
+                    padding-bottom: 0.3rem;
                     font-size: 1rem;
                     line-height: 120%;
                 }
-                .sub-title{
+                .sub-title {
                     @apply text-gray-500;
                     font-size: 0.875rem;
                     line-height: 150%;

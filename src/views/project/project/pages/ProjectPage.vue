@@ -52,7 +52,7 @@
             <div v-if="treeApiHandler.ts.metaState.firstSelectedNode" class="pb-8 grid-layout">
                 <p-toolbox-grid-layout
                     v-bind="apiHandler.gridTS.state"
-                    card-height="16rem"
+                    card-height="11.25rem"
                     :this-page.sync="apiHandler.gridTS.syncState.thisPage"
                     :page-size.sync="apiHandler.gridTS.syncState.pageSize"
                     @changePageNumber="apiHandler.getData()"
@@ -67,7 +67,7 @@
                             </p>
                             <PPageTitle :title="currentGroup" use-total-count :total-count="apiHandler.totalCount.value" />
                             <p-icon-button name="ic_transhcan"
-                                           width="1.5rem" height="1.5rem" class="delete-btn"
+                                           width="1.5rem" height="1.5re m" class="delete-btn"
                                            @click="openProjectGroupDeleteForm"
                             />
                             <p-icon-button name="ic_edit-text"
@@ -107,9 +107,7 @@
                             </div>
                         </div>
                         <div v-if="apiHandler.gridTS.querySearch.tags.value.length !== 0" slot="toolbox-bottom">
-                            <p-hr style="width: 100%;" />
                             <p-query-search-tags
-                                class="py-2"
                                 :tags="apiHandler.gridTS.querySearch.tags.value"
                                 @delete:tag="apiHandler.gridTS.querySearch.deleteTag"
                                 @delete:all="apiHandler.gridTS.querySearch.deleteAllTags"
@@ -137,6 +135,22 @@
                                     <p id="project-name">
                                         {{ item.name }}
                                     </p>
+
+                                    <div class="project-summary">
+                                        <div v-if="cardSummary[item.project_id]" class="summary-item">
+                                            <span class="summary-item-text">Server</span><span class="summary-item-num">{{ cardSummary[item.project_id].servers_count }}</span>
+                                            <span class="mx-2 text-gray-300 divider">|</span>
+                                            <span class="summary-item-text">Cloud Services<span class="summary-item-num">{{ cardSummary[item.project_id].cloud_services }}</span></span><br>
+                                        </div>
+                                        <div v-else class="loading">
+                                            <div v-for="v in skeletons" :key="v" class="flex items-center pb-2">
+                                                <p-skeleton class="flex-grow" />
+                                                <p-skeleton width="1.5rem" height="1.5rem" class="ml-5 flex-shrink-0" />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <hr class="solid">
                                     <div v-if="item.force_console_data.providers.length == 0" class="empty-providers flex"
                                          @click.stop="goToServiceAccount"
                                     >
@@ -145,13 +159,14 @@
                                                  width=".75rem" height=".75rem"
                                             />
                                         </div>
-                                        <span class="text-sm ml-2"> Add Service Account</span>
+                                        <span class="ml-2"> Add Service Account</span>
                                     </div>
                                     <div v-else-if="item.force_console_data.providers" class="providers">
+                                        <span>Service Accounts</span>
                                         <img v-for="(url, index) in item.force_console_data.providers" :key="index" :src="url"
                                              class="provider-icon"
                                         >
-                                        <span class="w-6 h-6 bg-blue-100 rounded-full inline-block" @click.stop="goToServiceAccount">
+                                        <span class="w-6 h-6 bg-blue-100 rounded-full inline-block provider-add-btn" @click.stop="goToServiceAccount">
                                             <p-i name="ic_plus_bold" color="inherit"
                                                  width=".75rem" height=".75rem"
                                             />
@@ -160,49 +175,35 @@
                                     </div>
                                 </div>
                             </div>
-                            <hr class="solid">
-                            <div class="project-summary">
-                                <div v-if="cardSummary[item.project_id]" class="summary-item">
-                                    <span class="summary-item-text">Cloud Service</span>   <span class="summary-item-num">{{ cardSummary[item.project_id].cloud_services }}</span><br>
-                                    <span class="summary-item-text">Server</span>   <span class="summary-item-num">{{ cardSummary[item.project_id].servers_count }}</span><br>
-                                    <span class="summary-item-text">Member</span>   <span class="summary-item-num">{{ cardSummary[item.project_id].member_count }}</span>
-                                </div>
-                                <div v-else class="loading">
-                                    <div v-for="v in skeletons" :key="v" class="flex items-center pb-2">
-                                        <p-skeleton class="flex-grow" />
-                                        <p-skeleton width="1.5rem" height="1.5rem" class="ml-5 flex-shrink-0" />
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </template>
                 </p-toolbox-grid-layout>
             </div>
-            <div v-else class="empty">
-                <img class="w-40 mx-auto mb-4 pt-8" src="@/assets/images/illust_astronaut_walking.svg">
-                <div class="empty-project-grp">
-                    <p class="title">
-                        Let's begin your <br>
-                        resource management!<br>
-                    </p>
-                    <p class="content">
-                        Getting started with grouping your scattered resource and <br>
-                        accounts with your own project.<br><br>
-                    </p>
-                    <p class="content-order">
-                        <b>1.</b> Name your project group first. <br>
-                        <b>2.</b> Register your project.
-                    </p>
-                    <p-button style-type="primary-dark"
-                              @click="openProjectGroupForm"
-                    >
-                        <p-i name="ic_plus_bold" color="inherit"
-                             width="1rem" height="1rem" class="mr-1 cursor-pointer add-btn"
-                        />
-                        Create Project Group
-                    </p-button>
-                </div>
-            </div>
+<!--            <div v-else class="empty">-->
+<!--                <img class="w-40 mx-auto mb-4 pt-8" src="@/assets/images/illust_astronaut_walking.svg">-->
+<!--                <div class="empty-project-grp">-->
+<!--                    <p class="title">-->
+<!--                        Let's begin your <br>-->
+<!--                        resource management!<br>-->
+<!--                    </p>-->
+<!--                    <p class="content">-->
+<!--                        Getting started with grouping your scattered resource and <br>-->
+<!--                        accounts with your own project.<br><br>-->
+<!--                    </p>-->
+<!--                    <p class="content-order">-->
+<!--                        <b>1.</b> Name your project group first. <br>-->
+<!--                        <b>2.</b> Register your project.-->
+<!--                    </p>-->
+<!--                    <p-button style-type="primary-dark"-->
+<!--                              @click="openProjectGroupForm"-->
+<!--                    >-->
+<!--                        <p-i name="ic_plus_bold" color="inherit"-->
+<!--                             width="1rem" height="1rem" class="mr-1 cursor-pointer add-btn"-->
+<!--                        />-->
+<!--                        Create Project Group-->
+<!--                    </p-button>-->
+<!--                </div>-->
+<!--            </div>-->
             <SProjectGroupCreateFormModal v-if="projectGroupFormVisible" :visible.sync="projectGroupFormVisible"
                                           :update-mode="updateMode" :current-group="currentGroup"
                                           @confirm="projectGroupFormConfirm($event)"
@@ -737,152 +738,144 @@ export default {
 </script>
 
 <style lang="postcss" scoped>
-    .tree-header {
-        @apply font-semibold text-sm text-gray-500 ml-5 mt-6 mb-4 overflow-x-hidden overflow-y-hidden;
-    }
+.tree-header {
+    @apply font-semibold text-sm text-gray-500 ml-5 mt-6 mb-4 overflow-x-hidden overflow-y-hidden;
+}
 
-    ::v-deep .basic {
-       @apply mx-3 mt-1 ;
-    }
+::v-deep .basic {
+    @apply mx-3 mt-1 ;
+}
 
-    ::v-deep .group-add-btn {
-        @apply float-right mr-1;
-        max-width: 1.5rem;
-        max-height: 1.5rem;
-        min-width: 1.5rem;
-        min-height: 1.5rem;
+::v-deep .group-add-btn {
+    @apply float-right mr-1;
+    max-width: 1.5rem;
+    max-height: 1.5rem;
+    min-width: 1.5rem;
+    min-height: 1.5rem;
     &:hover {
-         color: inherit;
-     }
+        color: inherit;
+    }
     &:not(:disabled):not(.disabled):hover {
          @apply bg-blue-300 border-blue-300;
-     }
     }
+}
 
-    ::v-deep .card-item {
-        @apply bg-white border border-gray-200;
-        border-radius: 2px;
-        cursor: pointer;
+::v-deep .card-item {
+    @apply bg-white border border-gray-200;
+    border-radius: 2px;
+    cursor: pointer;
     &:hover {
-         @apply border-l border-secondary bg-blue-200;
-         cursor: pointer;
-     }
+        @apply border-l border-gray-200 bg-blue-100;
+        cursor: pointer;
+         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+         border-radius: 4px;
     }
+}
 
-    .project-group {
-        & p {
-              @apply text-xs text-gray;
-          }
-        & span {
-              @apply text-2xl font-bold pb-2;
-        }
-        .delete-btn {
-            @apply text-black -mt-2 ml-2 cursor-pointer;
-            &:hover {
-                 @apply text-white;
-             }
+.project-group {
+    & p {
+        @apply text-xs text-gray;
+    }
+    & span {
+        @apply text-2xl font-bold pb-2;
+    }
+    .delete-btn {
+        @apply text-black -mt-2 ml-2 cursor-pointer;
+        &:hover {
+            @apply text-white;
         }
     }
+}
 
-    .project-group-icon {
+.project-group-icon {
         @apply mx-1;
-    }
+}
 
-    .empty {
-        @apply flex-col text-center justify-start;
-    }
+.empty {
+    @apply flex-col text-center justify-start;
+}
 
     .project-description {
-        @apply mx-6 mt-6;
-
-        .project-group-name {
-            @apply text-gray-500 text-xs mb-1;
-        }
-        #project-name {
-            @apply text-lg font-bold truncate pb-5 overflow-hidden;
-        }
-        .provider-icon {
-            @apply mr-4 inline;
-            max-width: 1.5rem;
-            max-height: 1.5rem;
-            min-height: 1.5rem;
-        }
-        .providers {
-            @apply relative text-blue-600 whitespace-no-wrap;
-            max-height: 1.5rem;
-            min-height: 1.5rem;
-            width: fit-content;
-            span { padding:0.125rem 0.375rem; }
-            &:hover {
-                 @apply text-secondary font-bold;
+        @apply mx-4 mt-6;
+        .project {
+            @apply mb-4;
+            .project-group-name {
+                @apply text-gray-500 text-xs mb-1;
+            }
+            #project-name {
+                @apply text-lg font-bold truncate pb-6 overflow-hidden;
+            }
+            .provider-icon {
+                @apply mr-4 inline;
+                max-width: 1.25rem;
+                max-height: 1.25rem;
+                min-height: 1.25rem;
+            }
+            .providers {
+                @apply relative text-xs text-gray-500 whitespace-no-wrap;
+                max-height: 1.5rem;
+                min-height: 1.5rem;
+                width: fit-content;
+                .provider-add-btn {
+                    @apply text-gray-900;
+                    &:hover {
+                        @apply bg-blue-300;
+                    }
+                }
                 span {
-                    @apply bg-blue-300 ;
+                    @apply mr-2;
+                    padding: 0.125rem 0.375rem;
+                }
+            }
+            .solid {
+                @apply border-l border-gray-100 mt-5 mb-4 ml-0;
+            }
+            .project-summary {
+                @apply mb-6;
+                .summary-item-text {
+                    @apply text-sm text-left inline-block;
+                }
+                .summary-item-num {
+                    @apply ml-2 font-bold;
                 }
             }
     }
 
     .empty-providers {
-        @apply relative text-blue-600;
+        @apply relative text-xs text-gray-900;
         width: fit-content;
-            div { padding:0.125rem 0.375rem; }
+            div { padding: 0.125rem 0.375rem; }
             &:hover {
                  @apply text-secondary font-bold;
-                     div{
+                     div {
                          @apply bg-blue-300 ;
                      }
             }
-            span { line-height:1.75; }
+            span { line-height: 1.75; }
         }
     }
 
-    .solid {
-        @apply border-l border-gray-100 mt-5 ml-0;
-    }
-
-    .project-summary {
-        @apply mt-4 mx-6;
-    .summary-item-text {
-        @apply text-sm text-left mb-4 inline-block;
-    }
-
-    .summary-item-num {
-        @apply text-blue-600 text-base font-bold text-right mb-3 inline-block float-right;
-    }
-    }
-
-    .tool {
-        @apply mb-6 justify-between;
+.tool {
+    @apply justify-between mb-6;
     .tool-left {
-    .tool-left-btn {
-        @apply mr-4;
-    }
-    .tool-left-search {
-        @apply flex-1;
-    @screen lg {
-        @apply max-w-lg;
-    }
-    }
-    }
-    .tool-right-checkbox {
-        @apply whitespace-no-wrap self-center;
-    }
-    }
+        .tool-left-btn {
+            @apply mr-4;
+        }
+        .tool-left-search {
+         @apply flex-1;
 
-    .empty-project {
-        @apply text-gray-300 text-center text-base;
+                @screen lg {
+                    @apply max-w-lg;
+                }
+            }
+        }
+        .tool-right-checkbox {
+            @apply whitespace-no-wrap self-center;
     }
+}
 
-    .empty-project-grp {
-        line-height:1.5;
-        .title {
-            @apply text-primary-dark font-bold text-2xl pt-8 pb-4 leading-tight;
-        }
-        .content {
-            @apply text-gray-600;
-        }
-        .content-order {
-            @apply text-base pb-8 text-left m-auto max-w-64;
-        }
-    }
+.empty-project {
+    @apply text-gray-300 text-center text-base;
+}
 
 </style>

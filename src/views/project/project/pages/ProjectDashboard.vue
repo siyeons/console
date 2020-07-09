@@ -57,9 +57,7 @@ import ServiceSummary from '@/views/common/widgets/service-summary/ServiceSummar
 import ServiceAccountsTable from '@/views/common/widgets/service-accounts-table/ServiceAccountsTable.vue';
 import HealthDashboard from '@/views/common/widgets/health-dashboard/HealthDashboard.vue';
 import { blue, secondary, secondary1 } from '@/styles/colors';
-import {
-    computed, getCurrentInstance, reactive, toRefs,
-} from '@vue/composition-api';
+import { computed, reactive, toRefs } from '@vue/composition-api';
 import { FILTER_OPERATOR } from '@/lib/fluent-api';
 import PTab from '@/components/organisms/tabs/tab/Tab.vue';
 import { makeTrItems } from '@/lib/view-helper';
@@ -142,7 +140,7 @@ export default {
                 .addGroupField('count', STAT_OPERATORS.sum, 'values.cloud_service_count'),
         });
 
-        const dailyUpdates = ({
+        const DailyUpdates = ({
             server: api => api.setFilter({
                 key: 'values.project_id',
                 value: projectId.value,
@@ -155,6 +153,30 @@ export default {
                 operator: '=',
             })
                 .setTopic('daily_cloud_service_updates_by_project'),
+        });
+
+        const dailyUpdates = ({
+            server: api => api.setFilter(
+                { key: 'project_id', value: projectId.value, operator: FILTER_OPERATOR.in },
+                { key: 'server_type', value: ['BAREMETAL', 'VM', 'HYPERVISOR'], operator: FILTER_OPERATOR.in },
+            )
+                .setJoinFilter([{ key: 'project_id', value: projectId.value, operator: FILTER_OPERATOR.in },
+                    { key: 'server_type', value: ['BAREMETAL', 'VM', 'HYPERVISOR'], operator: FILTER_OPERATOR.in },
+                    { key: 'deleted_at', value: 'now/d - 2d', operator: FILTER_OPERATOR.gtTime },
+                    { key: 'state', value: 'DELETED', operator: FILTER_OPERATOR.in }])
+                .setJoinFilter([{ key: 'project_id', value: projectId.value, operator: FILTER_OPERATOR.in },
+                    { key: 'server_type', value: ['BAREMETAL', 'VM', 'HYPERVISOR'], operator: FILTER_OPERATOR.in },
+                    { key: 'created_at', value: 'now/d', operator: FILTER_OPERATOR.gtTime }], 1)
+            ,
+            cloudService: api => api.setFilter(
+                { key: 'tags.spaceone:is_major', value: 'true', operator: FILTER_OPERATOR.in },
+            )
+                .setJoinFilter( [{ key: 'project_id', value: projectId.value, operator: FILTER_OPERATOR.in }])
+                .setJoinFilter([{ key: 'project_id', value: projectId.value, operator: FILTER_OPERATOR.in },
+                    { key: 'deleted_at', value: 'now/d', operator: FILTER_OPERATOR.gtTime },
+                    { key: 'state', value: 'DELETED', operator: FILTER_OPERATOR.in }], 1)
+                .setJoinFilter([{ key: 'project_id', value: projectId.value, operator: FILTER_OPERATOR.in },
+                    { key: 'created_at', value: 'now/d', operator: FILTER_OPERATOR.gtTime }], 2)
         });
 
         const resources = ({
