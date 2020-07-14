@@ -295,6 +295,7 @@ export default {
         &::v-deep {
             .widget-contents {
                 overflow-y: auto;
+                padding: 0;
             }
             .item-container.card {
                 background-color: transparent;
@@ -321,7 +322,7 @@ export default {
         max-width: 14rem;
     }
     .card-contents {
-        @apply flex items-center w-full content-between py-4 overflow-hidden;
+        @apply flex items-center w-full content-between p-4 overflow-hidden;
         &:hover {
              background-color: rgba(theme('colors.blue.200'), 0.8);
          }
