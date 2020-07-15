@@ -10,6 +10,7 @@
                 <SDynamicLayout
                     v-bind="mainTableLayout"
                     :toolset="apiHandler"
+                    :is-show="isReady"
                     :vbind="{
                         responsiveStyle:{'height': height+'px', 'overflow-y':'auto','overflow-x':'auto'},
                         showTitle:false,
@@ -134,7 +135,7 @@
 /* eslint-disable camelcase */
 
 import {
-    computed, getCurrentInstance, onMounted, reactive, ref, watch,
+    computed, getCurrentInstance, onMounted, reactive, ref, toRefs, watch,
 } from '@vue/composition-api';
 import PStatus from '@/components/molecules/status/Status.vue';
 import {
@@ -211,6 +212,12 @@ export default {
     },
     setup(props, context) {
         const vm = getCurrentInstance() as ComponentInstance;
+        const projectState = reactive({
+            project: {},
+            isReady: false,
+        });
+        const { project } = (vm as any).$ls;
+
         const filedMap = {
             project_id: {
                 key: 'console_force_data.project',
@@ -239,9 +246,9 @@ export default {
             ],
             suggestKeys: ['server_id', 'name', 'primary_ip_address'],
         };
-        const { project } = useStore();
-
-        project.getProject();
+        // const { project } = useStore();
+        //
+        // project.getProject();
         const action = fluentApi.inventory().server().list()
             .setTransformer((resp: AxiosResponse<ServerListResp>) => {
                 const result = resp;
@@ -444,16 +451,44 @@ export default {
             changeProjectState.loading = true;
             const changeAction = fluentApi.inventory().server().changeProject().clone()
                 .setSubIds(apiHandler.tableTS.selectState.selectItems.map(item => item.server_id));
-
             if (data) {
-                await changeAction.setId(data.id).execute();
+                try {
+                    await changeAction.setId(data.id).execute();
+                    context.root.$notify({
+                        group: 'noticeTopRight',
+                        type: 'success',
+                        title: 'Success',
+                        text: 'Project has been successfully changed.',
+                        duration: 2000,
+                        speed: 1000,
+                    });
+                } catch (e) {
+                    showErrorMessage('Fail to Change Project', e, context.root);
+                } finally {
+                    await project.getProject(true);
+                    projectState.project = project.state.projects;
+                    await apiHandler.getData();
+                }
             } else {
-                await changeAction.setReleaseProject().execute();
+                try {
+                    await changeAction.setReleaseProject().execute();
+                    context.root.$notify({
+                        group: 'noticeTopRight',
+                        type: 'success',
+                        title: 'Success',
+                        text: 'Release Project Success',
+                        duration: 2000,
+                        speed: 1000,
+                    });
+                } catch (e) {
+                    showErrorMessage('Fail to Release Project', e, context.root);
+                } finally {
+                    await apiHandler.getData();
+                }
             }
-
             changeProjectState.loading = false;
             changeProjectState.visible = false;
-            await apiHandler.getData();
+            // await apiHandler.getData();
         };
 
 
@@ -537,7 +572,16 @@ export default {
             }),
         };
 
+        const init = async () => {
+            await project.getProject(true);
+            projectState.project = project.state.projects;
+            projectState.isReady = true;
+        };
+
+        init();
+
         return {
+            ...toRefs(projectState),
             singleItemTab,
             multiItemTab,
             dropdown,
@@ -547,9 +591,9 @@ export default {
             clickCollectData() {
                 collectModalState.visible = true;
             },
-            clickMenuEvent(menuName) {
-                console.debug(menuName);
-            },
+            // clickMenuEvent(menuName) {
+            //     console.debug(menuName);
+            // },
             checkTableModalState,
             clickDelete,
             clickClosed,

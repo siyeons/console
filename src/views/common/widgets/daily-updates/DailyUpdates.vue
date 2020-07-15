@@ -46,7 +46,7 @@
                     </router-link>
                 </template>
             </p-grid-layout>
-            <div v-if="!dailyUpdates && cloudServiceData.length === 0" class="h-full flex flex-col justify-center">
+            <div v-if="serverData.length === 0 && cloudServiceData.length === 0" class="h-full flex flex-col justify-center">
                 <img :src="'./images/illust_no-update.svg'" class="no-data-img">
             </div>
         </template>
@@ -172,8 +172,8 @@ export default {
         const getServerData = async (): Promise<void> => {
             try {
                 const res = await props.getServerAction(serverAPI).execute();
-                state.serverData = res.data.results;
-                if (state.serverData.length !== 0) state.dailyUpdates = true;
+                const filteredData = res.data.results.filter(element => (element.created_count > 0 || element.deleted_count > 0));
+                state.serverData = filteredData;
             } catch (e) {
                 console.error(e);
             }
@@ -295,6 +295,7 @@ export default {
         &::v-deep {
             .widget-contents {
                 overflow-y: auto;
+                padding: 0;
             }
             .item-container.card {
                 background-color: transparent;
@@ -321,7 +322,7 @@ export default {
         max-width: 14rem;
     }
     .card-contents {
-        @apply flex items-center w-full content-between py-4 overflow-hidden;
+        @apply flex items-center w-full content-between p-4 overflow-hidden;
         &:hover {
              background-color: rgba(theme('colors.blue.200'), 0.8);
          }
