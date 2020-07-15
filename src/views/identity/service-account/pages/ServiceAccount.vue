@@ -221,6 +221,7 @@ import STagsPanel from '@/components/organisms/panels/tag-panel/STagsPanel.vue';
 import { DynamicLayoutApiProp } from '@/components/organisms/dynamic-view/dynamic-layout/toolset';
 import { showErrorMessage } from '@/lib/util';
 import { ComponentInstance } from '@vue/composition-api/dist/component';
+import { projectFormatter } from '@/lib/display-formatter';
 
 enum providerQsName{
     select = 'provider'
@@ -246,8 +247,12 @@ export default {
         SDynamicLayout,
     },
     setup(props, context) {
-        const { project } = useStore();
-        project.getProject();
+        const vm = getCurrentInstance() as ComponentInstance;
+        const projectState = reactive({
+            project: {},
+        });
+        const { project } = (vm as any).$ls;
+
         const resourceCountAPI = fluentApi.identity().serviceAccount().list().setCountOnly();
         const providerListAPI = fluentApi.identity().provider().list().setOnly(
             'name',
@@ -258,7 +263,6 @@ export default {
             'template.service_account.schema',
             'capability.supported_schema',
         );
-        const vm = getCurrentInstance() as ComponentInstance;
 
         const selectProvider = ref<string>('');
         const providers = ref<{[key in string]: ProviderModel}>({});
@@ -313,7 +317,8 @@ export default {
             .setTransformer((resp: AxiosResponse<ServiceAccountListResp>) => {
                 const result = resp;
                 result.data.results = resp.data.results.map((item) => {
-                    item.console_force_data = { project: item.project_info ? project.state.projects[item.project_info.project_id] || item.project_info.project_id : '' };
+                    item.console_force_data = { project: item.project_info ? projectState.project[item.project_info.project_id] : '' };
+                    // item.console_force_data = { project: projectFormatter(item.project_info.project_id) };
                     return item;
                 });
                 return result;
@@ -384,38 +389,44 @@ export default {
                 .setSubIds(apiHandler.tableTS.selectState.selectItems.map(item => item.service_account_id));
 
             if (data) {
-                await action.setId(data.id).execute()
-                    .then(() => {
-                        context.root.$notify({
-                            group: 'noticeTopRight',
-                            type: 'success',
-                            title: 'Success',
-                            text: 'Project has been successfully changed.',
-                            duration: 2000,
-                            speed: 1000,
-                        });
-                    }).catch((e) => {
-                        showErrorMessage('Fail to Change Project', e, context.root);
+                try {
+                    await action.setId(data.id).execute();
+
+                    context.root.$notify({
+                        group: 'noticeTopRight',
+                        type: 'success',
+                        title: 'Success',
+                        text: 'Project has been successfully changed.',
+                        duration: 2000,
+                        speed: 1000,
                     });
+                } catch (e) {
+                    showErrorMessage('Fail to Change Project', e, context.root);
+                } finally {
+                    await project.getProject(true);
+                    projectState.project = project.state.projects;
+                    await apiHandler.getData();
+                }
             } else {
-                await action.setReleaseProject().execute()
-                    .then(() => {
-                        context.root.$notify({
-                            group: 'noticeTopRight',
-                            type: 'success',
-                            title: 'Success',
-                            text: 'Release Project Success',
-                            duration: 2000,
-                            speed: 1000,
-                        });
-                    }).catch((e) => {
-                        showErrorMessage('Fail to Release Project', e, context.root);
+                try {
+                    await action.setReleaseProject().execute();
+                    context.root.$notify({
+                        group: 'noticeTopRight',
+                        type: 'success',
+                        title: 'Success',
+                        text: 'Release Project Success',
+                        duration: 2000,
+                        speed: 1000,
                     });
+                } catch (e) {
+                    showErrorMessage('Fail to Release Project', e, context.root);
+                } finally {
+                    await apiHandler.getData();
+                }
             }
 
             changeProjectState.loading = false;
             changeProjectState.visible = false;
-            await apiHandler.getData();
         };
 
 
@@ -631,6 +642,9 @@ export default {
         /** Init */
         const init = async () => {
             await requestProvider();
+            // useStore();
+            await project.getProject(true);
+            projectState.project = project.state.projects;
 
             // init search text by query string
             apiHandler.tableTS.searchText.value = vm.$route.query.t_se as string;
@@ -679,6 +693,7 @@ export default {
             adminApi,
             clickSecretAddForm,
             ...toRefs(secretFormState),
+            ...toRefs(projectState),
             secretFormConfirm,
             providerListState,
             selectProvider,
