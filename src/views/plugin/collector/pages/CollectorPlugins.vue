@@ -130,8 +130,6 @@ export const setup = (props, { root }) => {
         sortBy: 'name',
     });
 
-    const isShow = ref(false);
-
     const listApi = fluentApi.repository().plugin().list().setServiceType('inventory.Collector');
 
     const apiHandler = new QuerySearchGridFluentAPI(
@@ -148,7 +146,6 @@ export const setup = (props, { root }) => {
             valueHandlerMap: getStatApiValueHandlerMap(['labels'], 'repository.Plugin'),
             suggestKeys: ['labels'],
         },
-        isShow,
     );
 
     const listPlugins = _.debounce(async () => {
@@ -184,7 +181,6 @@ export const setup = (props, { root }) => {
         }
     });
 
-    onMounted(() => { isShow.value = true; });
 
     return {
         apiHandler,

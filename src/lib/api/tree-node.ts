@@ -177,7 +177,7 @@ export class ProjectTreeFluentAPI<
                 if (key !== -1) {
                     const nextParent = getTreeItem(key, idx + 1, children[key], parent);
                     nextParent.node.children = await this.getRecursiveData(ids, idx + 1, nextParent);
-                    nextParent.node.state.expanded = !!nextParent.node.children;
+                    nextParent.node.state.expanded = (idx < ids.length - 2);
                 }
             }
             return children;
@@ -190,7 +190,7 @@ export class ProjectTreeFluentAPI<
         if (itemIdx !== -1) {
             const item = getTreeItem(itemIdx, 0, rootItems[itemIdx]);
             item.node.children = await this.getRecursiveData(ids, idx, item);
-            item.node.state.expanded = !!item.node.children;
+            item.node.state.expanded = (idx !== ids.length - 1);
         }
         return rootItems;
     }

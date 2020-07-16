@@ -43,7 +43,6 @@ import { QuerySearchTableFluentAPI } from '@/lib/api/table';
 import { reactive, toRefs } from '@vue/composition-api';
 import PBoxLayout from '@/components/molecules/layouts/box-layout/BoxLayout.vue';
 import { showErrorMessage } from '@/lib/util';
-import { makeValueHandlers } from '@/components/organisms/search/query-search-bar/autocompleteHandler';
 import { getKeyHandler } from '@/components/organisms/search/query-search/PQuerySearch.toolset';
 import { getStatApiValueHandlerMap } from '@/lib/api/query-search';
 

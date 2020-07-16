@@ -53,8 +53,10 @@ export abstract class BaseGridFluentAPI<
         } catch (e) {
             this.gridTS.state.items = [];
             this.gridTS.state.allPage = 1;
+        } finally {
+            this.gridTS.syncState.loading = false;
         }
-        this.gridTS.syncState.loading = false;
+
         // return res;
     };
 
@@ -110,10 +112,10 @@ export class QuerySearchGridFluentAPI<
     T extends QuerySearchGridLayoutToolSet<initData, initSyncData> = QuerySearchGridLayoutToolSet<initData, initSyncData>,
     action extends QueryAPI<parameter, resp> = QueryAPI<parameter, resp>,
     > extends BaseGridFluentAPI<parameter, resp, initData, initSyncData, T, action> {
-    initToolset = (initData, initSyncData, acHandlerMeta: ACHandlerMeta, isShow) => {
+    initToolset = (initData, initSyncData, acHandlerMeta: ACHandlerMeta) => {
         this.gridTS = new QuerySearchGridLayoutToolSet(acHandlerMeta.keyHandler, acHandlerMeta.valueHandlerMap, acHandlerMeta.suggestKeys, initData, initSyncData) as T;
         watch(this.gridTS.querySearch.tags, async (tags, preTags) => {
-            if (isShow.value && tags !== preTags) {
+            if (tags !== preTags) {
                 await this.getData(true);
             }
         });
@@ -124,12 +126,11 @@ export class QuerySearchGridFluentAPI<
         initData: initData = {} as initData,
         initSyncData: initSyncData = {} as initSyncData,
         acHandlerMeta: ACHandlerMeta = defaultACHandler,
-        isShow: any = ref(true),
         initLazy = false,
     ) {
         super(action);
         if (!initLazy) {
-            this.initToolset(initData, initSyncData, acHandlerMeta, isShow);
+            this.initToolset(initData, initSyncData, acHandlerMeta);
         }
     }
 

@@ -1,55 +1,84 @@
 <template>
     <p-vertical-page-layout :min-width="260" :init-width="260" :max-width="400">
         <template #sidebar="{width}">
-            <div class="h-full treeSidebar">
-                <div class="tree-header flex">
-                    PROJECT GROUP
-                    <p-i name="ic_plus" color="transparent inherit"
-                         width="1rem" height="1rem" class="ml-2 cursor-pointer add-btn"
-                         @click="openProjectGroupForm(true)"
+            <div class="left-sidebar">
+                <div class="side-item">
+                    <header>
+                        <span class="title">Search</span>
+                        <!--                        <p-i v-tooltip.bottom="{content: '', delay: {show: 500}}"-->
+                        <!--                             name="ic_tooltip"-->
+                        <!--                             width="1rem" height="1rem" class="icon-help"-->
+                        <!--                        />-->
+                    </header>
+                    <project-search :project-group.sync="searchedProjectGroup"
+                                    @search="onSearch"
                     />
                 </div>
-                <p-hr style="width: 100%;" />
-                <p-tree-node v-for="(node, idx) in treeApiHandler.ts.metaState.nodes" :key="idx"
-                             v-bind="treeApiHandler.ts.state"
-                             :data.sync="node.data"
-                             :children.sync="node.children"
-                             :state.sync="node.state"
-                             @toggle:click="treeApiHandler.toggle"
-                             @node:click="treeApiHandler.ts.setSelectedNodes"
-                             @row:mouseenter="hovered(...arguments, true)"
-                             @row:mouseleave="hovered(...arguments, false)"
-                >
-                    <template #data="{data}">
-                        {{ data.name }}
-                    </template>
-                    <template #toggle="{state, toggleSize}">
-                        <p-i v-if="state.loading" name="ic_working" :width="toggleSize"
-                             :height="toggleSize"
-                        />
-                    </template>
-                    <template #toggle-right>
-                        <p-i name="ic_tree_project-group" class="project-group-icon"
-                             width="1rem" height="1rem" color="inherit transparent"
-                        />
-                    </template>
-                    <template #right-extra="{data}">
-                        <div v-if="data.id === hoveredId && isHover">
-                            <div v-tooltip.top="{content: $t('TREE_TYPE.CREATE_GRP'), delay: {show: 500}}"
-                                 class="float-right text-base truncate leading-tight"
-                            >
-                                <p-icon-button :name="'ic_plus'" class="group-add-btn"
-                                               width="1rem" height="1rem"
-                                               @click.stop="openProjectGroupForm(false)"
-                                />
-                            </div>
-                        </div>
-                    </template>
-                </p-tree-node>
+
+                <div class="side-item">
+                    <header>
+                        <span class="title">Project Group</span>
+                        <p-button class="action-btn" @click="openProjectGroupForm(null)">
+                            Create
+                        </p-button>
+                    </header>
+                    <project-group-tree ref="treeRef"
+                                        @select="onSelectTreeItem"
+                                        @create="openProjectGroupForm"
+                    />
+                </div>
             </div>
         </template>
         <template #default>
-            <div v-if="treeApiHandler.ts.metaState.firstSelectedNode" class="pb-8 grid-layout">
+            <div>
+                <div class="parents-info">
+                    <template v-if="parentGroups.length > 0">
+                        <span v-for="(pg, i) in parentGroups" :key="i" class="group-name">
+                            <span class="text link" @click="searchedProjectGroup = pg">{{ pg.name }}</span>
+                            <p-i v-if="i < parentGroups.length - 1" class="mx-1"
+                                 name="ic_breadcrum_arrow"
+                            />
+                        </span>
+                    </template>
+                    <span v-else class="group-name">
+                        <span class="text">Projects</span>
+                    </span>
+                </div>
+                <p-page-title :title="searchedProjectGroup ? searchedProjectGroup.name
+                                  : 'All Projects'"
+                              use-total-count
+                              :total-count="apiHandler.totalCount.value"
+                >
+                    <template #extra-area>
+                        <div class="btns">
+                            <!--                            <p-icon-button v-if="searchedProjectGroup" name="ic_transhcan"-->
+                            <!--                                           width="1.5rem" height="1.5rem" class="delete-btn"-->
+                            <!--                                           @click="openProjectGroupDeleteForm"-->
+                            <!--                            />-->
+                            <!--                            <p-icon-button v-if="searchedProjectGroup" name="ic_edit-text"-->
+                            <!--                                           width="1.5rem" height="1.5rem" class="edit-btn"-->
+                            <!--                                           @click="openProjectGroupEditForm"-->
+                            <!--                            />-->
+                            <p-dropdown-menu-btn v-if="searchedProjectGroup"
+                                                 :menu="settingMenu"
+                                                 button-only
+                                                 button-icon="ic_setting"
+                                                 button-style-type="primary-dark"
+                                                 @edit:select="openProjectGroupEditForm"
+                                                 @delete:select="openProjectGroupDeleteForm"
+                            />
+                            <p-icon-text-button v-if="searchedProjectGroup"
+                                                style-type="primary-dark"
+                                                name="ic_plus_bold"
+                                                @click="openProjectForm"
+                            >
+                                {{ $t('INVENTORY.CRT_PROJ') }}
+                            </p-icon-text-button>
+                        </div>
+                    </template>
+                </p-page-title>
+            </div>
+            <div class="pb-8">
                 <p-toolbox-grid-layout
                     v-bind="apiHandler.gridTS.state"
                     card-height="11.25rem"
@@ -58,60 +87,27 @@
                     @changePageNumber="apiHandler.getData()"
                     @changePageSize="apiHandler.getData()"
                     @clickRefresh="apiHandler.getData()"
-                    @card:click.self="clickCard"
+                    @card:click.self="onClickCard"
                 >
-                    <template #toolbox-top>
-                        <div class="project-group">
-                            <p>
-                                {{ parentGroup }}
-                            </p>
-                            <PPageTitle :title="currentGroup" use-total-count :total-count="apiHandler.totalCount.value" />
-                            <p-icon-button name="ic_transhcan"
-                                           width="1.5rem" height="1.5re m" class="delete-btn"
-                                           @click="openProjectGroupDeleteForm"
-                            />
-                            <p-icon-button name="ic_edit-text"
-                                           width="1.5rem" height="1.5rem" class="edit-btn"
-                                           @click="openProjectGroupEditForm"
-                            />
-                        </div>
-                    </template>
-                    <template #toolbox-bottom>
-                        <div class="flex flex-row xs:flex-col sm:flex-col md:flex-row lg:flex-row xl:flew-row tool">
-                            <div class="flex flex-row flex-wrap w-full tool-left">
-                                <div class="tool-left-btn">
-                                    <PIconTextButton style-type="primary-dark"
-                                                     name="ic_plus_bold"
-                                                     @click="openProjectForm"
-                                    >
-                                        {{ $t('INVENTORY.CRT_PROJ') }}
-                                    </PIconTextButton>
-                                </div>
-                                <div class="tool-left-search">
-                                    <p-query-search v-model="apiHandler.gridTS.querySearch.state.searchText"
-                                                    v-bind="apiHandler.gridTS.querySearch.state"
-                                                    @menu:show="apiHandler.gridTS.querySearch.onMenuShow"
-                                                    @key:input="apiHandler.gridTS.querySearch.onKeyInput"
-                                                    @value:input="apiHandler.gridTS.querySearch.onValueInput"
-                                                    @key:select="apiHandler.gridTS.querySearch.onKeySelect"
-                                                    @search="apiHandler.gridTS.querySearch.onSearch"
-                                    />
-                                </div>
+                    <template #toolbox-left>
+                        <div class="flex items-center">
+                            <div v-tooltip.bottom="{content: 'Show All Projects of Sub Project Groups', delay: {show: 500}}"
+                                 class="text-base truncate leading-tight"
+                            >
+                                <p-check-box v-model="showAllProjects">
+                                    <span class="show-all">Show All Projects</span>
+                                </p-check-box>
                             </div>
-                            <div class="tool-right-checkbox">
-                                <div v-tooltip.bottom="{content: 'Show All Projects of Sub Project Groups', delay: {show: 500}}"
-                                     class="text-base truncate leading-tight"
-                                >
-                                    <PCheckBox v-model="showAllProjects" />  <span class="text-sm ml-2 leading-relaxed ">Show All Projects</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div v-if="apiHandler.gridTS.querySearch.tags.value.length !== 0" slot="toolbox-bottom">
-                            <p-query-search-tags
-                                :tags="apiHandler.gridTS.querySearch.tags.value"
-                                @delete:tag="apiHandler.gridTS.querySearch.deleteTag"
-                                @delete:all="apiHandler.gridTS.querySearch.deleteAllTags"
-                            />
+                            <!--                                <div class="tool-left-btn">-->
+                            <!--                                    <p-icon-text-button v-if="searchedProjectGroup"-->
+                            <!--                                                        style-type="primary-dark"-->
+                            <!--                                                        name="ic_plus_bold"-->
+                            <!--                                                        @click="openProjectForm"-->
+                            <!--                                    >-->
+                            <!--                                        {{ $t('INVENTORY.CRT_PROJ') }}-->
+                            <!--                                    </p-icon-text-button>-->
+                            <!--                                </div>-->
+                            <!--                            <div class="tool-right-checkbox" />-->
                         </div>
                     </template>
                     <template #no-data>
@@ -123,15 +119,15 @@
                         </div>
                     </template>
                     <template #card="{item}">
-                        <div v-if="treeApiHandler.ts.metaState.firstSelectedNode && item">
+                        <div v-if="item">
                             <div class="project-description">
                                 <div class="project">
-                                    <div v-if="parentGroup" class="project-group-name">
-                                        {{ parentGroup }} > {{ item.project_group_info.name }}
-                                    </div>
-                                    <p v-else-if="!parentGroup" class="project-group-name">
+                                    <div class="project-group-name">
+                                        <template v-if="parentGroups.length > 0">
+                                            {{ parentGroups[parentGroups.length - 1].name }} >
+                                        </template>
                                         {{ item.project_group_info.name }}
-                                    </p>
+                                    </div>
                                     <p id="project-name">
                                         {{ item.name }}
                                     </p>
@@ -179,38 +175,45 @@
                     </template>
                 </p-toolbox-grid-layout>
             </div>
-<!--            <div v-else class="empty">-->
-<!--                <img class="w-40 mx-auto mb-4 pt-8" src="@/assets/images/illust_astronaut_walking.svg">-->
-<!--                <div class="empty-project-grp">-->
-<!--                    <p class="title">-->
-<!--                        Let's begin your <br>-->
-<!--                        resource management!<br>-->
-<!--                    </p>-->
-<!--                    <p class="content">-->
-<!--                        Getting started with grouping your scattered resource and <br>-->
-<!--                        accounts with your own project.<br><br>-->
-<!--                    </p>-->
-<!--                    <p class="content-order">-->
-<!--                        <b>1.</b> Name your project group first. <br>-->
-<!--                        <b>2.</b> Register your project.-->
-<!--                    </p>-->
-<!--                    <p-button style-type="primary-dark"-->
-<!--                              @click="openProjectGroupForm"-->
-<!--                    >-->
-<!--                        <p-i name="ic_plus_bold" color="inherit"-->
-<!--                             width="1rem" height="1rem" class="mr-1 cursor-pointer add-btn"-->
-<!--                        />-->
-<!--                        Create Project Group-->
-<!--                    </p-button>-->
-<!--                </div>-->
-<!--            </div>-->
-            <SProjectGroupCreateFormModal v-if="projectGroupFormVisible" :visible.sync="projectGroupFormVisible"
-                                          :update-mode="updateMode" :current-group="currentGroup"
-                                          @confirm="projectGroupFormConfirm($event)"
+            <!--            <div v-else class="empty">-->
+            <!--                <img class="w-40 mx-auto mb-4 pt-8" src="@/assets/images/illust_astronaut_walking.svg">-->
+            <!--                <div class="empty-project-grp">-->
+            <!--                    <p class="title">-->
+            <!--                        Let's begin your <br>-->
+            <!--                        resource management!<br>-->
+            <!--                    </p>-->
+            <!--                    <p class="content">-->
+            <!--                        Getting started with grouping your scattered resource and <br>-->
+            <!--                        accounts with your own project.<br><br>-->
+            <!--                    </p>-->
+            <!--                    <p class="content-order">-->
+            <!--                        <b>1.</b> Name your project group first. <br>-->
+            <!--                        <b>2.</b> Register your project.-->
+            <!--                    </p>-->
+            <!--                    <p-button style-type="primary-dark"-->
+            <!--                              @click="openProjectGroupForm"-->
+            <!--                    >-->
+            <!--                        <p-i name="ic_plus_bold" color="inherit"-->
+            <!--                             width="1rem" height="1rem" class="mr-1 cursor-pointer add-btn"-->
+            <!--                        />-->
+            <!--                        Create Project Group-->
+            <!--                    </p-button>-->
+            <!--                </div>-->
+            <!--            </div>-->
+            <SProjectGroupCreateFormModal v-if="projectGroupFormVisible"
+                                          :id="updateMode && searchedProjectGroup ?
+                                              searchedProjectGroup.id : undefined"
+                                          :parent="createTargetNode ? createTargetNode.node.data
+                                              : null"
+                                          :visible.sync="projectGroupFormVisible"
+                                          :update-mode="updateMode"
+                                          @create="onProjectGroupCreate"
+                                          @update="onProjectGroupUpdate"
             />
-            <SProjectCreateFormModal v-if="projectFormVisible" :visible.sync="projectFormVisible"
-                                     :current-project="treeApiHandler.ts.metaState.firstSelectedNode.node.data.id"
-                                     :project-group-id="currentGroupId"
+            <SProjectCreateFormModal v-if="projectFormVisible && searchedProjectGroup"
+                                     :visible.sync="projectFormVisible"
+                                     :current-project="searchedProjectGroup.id"
+                                     :project-group-id="searchedProjectGroup.id"
                                      @confirm="projectFormConfirm($event)"
             />
             <p-button-modal
@@ -240,11 +243,14 @@
 <script lang="ts">
 /* eslint-disable camelcase */
 import {
-    computed, getCurrentInstance, onMounted, reactive, ref, toRefs, watch,
+    computed,
+    getCurrentInstance, onMounted, reactive, ref, toRefs, watch,
 } from '@vue/composition-api';
 import PVerticalPageLayout from '@/views/containers/page-layout/VerticalPageLayout.vue';
 
-import _, { isEqual } from 'lodash';
+import {
+    get, zipObject, range, reverse,
+} from 'lodash';
 import PToolboxGridLayout from '@/components/organisms/layouts/toolbox-grid-layout/ToolboxGridLayout.vue';
 
 import PI from '@/components/atoms/icons/PI.vue';
@@ -252,7 +258,6 @@ import PHr from '@/components/atoms/hr/Hr.vue';
 import PIconButton from '@/components/molecules/buttons/IconButton.vue';
 import PPageTitle from '@/components/organisms/title/page-title/PageTitle.vue';
 import PCheckBox from '@/components/molecules/forms/checkbox/CheckBox.vue';
-import PButton from '@/components/atoms/buttons/Button.vue';
 import PIconTextButton from '@/components/molecules/buttons/IconTextButton.vue';
 import PSkeleton from '@/components/atoms/skeletons/Skeleton.vue';
 import {
@@ -263,29 +268,26 @@ import { ProjectItemResp, ProjectListResp } from '@/lib/fluent-api/identity/proj
 import { AxiosResponse } from 'axios';
 import { useStore } from '@/store/toolset';
 import { ProjectSummaryResp } from '@/lib/fluent-api/statistics';
-import { DefaultQSGridQSProps, QuerySearchGridFluentAPI } from '@/lib/api/grid';
-import PQuerySearchTags from '@/components/organisms/search/query-search-tags/PQuerySearchTags.vue';
+import { SearchGridFluentAPI } from '@/lib/api/grid';
 import PButtonModal from '@/components/organisms/modals/button-modal/ButtonModal.vue';
 import SProjectCreateFormModal from '@/views/project/project/modules/ProjectCreateFormModal.vue';
 import SProjectGroupCreateFormModal from '@/views/project/project/modules/ProjectGroupCreateFormModal.vue';
 import { STAT_OPERATORS } from '@/lib/fluent-api/statistics/type';
 import { showErrorMessage } from '@/lib/util';
-import PTreeNode from '@/components/molecules/tree/PTreeNode.vue';
-import {
-    DefaultQSTreeProps,
-    ProjectNodeState,
-    ProjectTreeFluentAPI,
-} from '@/lib/api/tree-node';
-import {
-    getBaseNodeState, getDefaultNode, getTreeItem, TreeItem, TreeNode,
-} from '@/components/molecules/tree/PTreeNode.toolset';
 import { ComponentInstance } from '@vue/composition-api/dist/component';
 import {
     makeQueryStringComputeds,
 } from '@/lib/router-query-string';
-import PQuerySearch from '@/components/organisms/search/query-search/PQuerySearch.vue';
-import { getKeyHandler } from '@/components/organisms/search/query-search/PQuerySearch.toolset';
-import { getStatAction, getStatApiValueHandlerMap } from '@/lib/api/query-search';
+import ProjectSearch from '@/views/project/project/modules/ProjectSearch.vue';
+import {
+    ProjectGroup,
+    ProjectTreeItem,
+} from '@/views/project/project/modules/ProjectSearch.toolset';
+import ProjectGroupTree from '@/views/project/project/modules/ProjectGroupTree.vue';
+import PButton from '@/components/atoms/buttons/Button.vue';
+import PSelectDropdown from '@/components/organisms/dropdown/select-dropdown/SelectDropdown.vue';
+import PDropdownMenuBtn from '@/components/organisms/dropdown/dropdown-menu-btn/DropdownMenuBtn.vue';
+import { MenuItem } from '@/components/organisms/context-menu/context-menu/PContextMenu.toolset';
 
     interface ProjectCardData{
         projectGroupName: string;
@@ -298,25 +300,34 @@ import { getStatAction, getStatApiValueHandlerMap } from '@/lib/api/query-search
 
     interface State {
         items: ProjectCardData[];
-        isHover: boolean;
-        hoveredId: string;
-        hoveredNode: TreeItem<ProjectItemResp, ProjectNodeState>|null;
+        settingMenu: MenuItem[];
         showAllProjects: boolean;
+        searchedProjectGroup: ProjectGroup|null;
+        selectedTreeItem: ProjectTreeItem|null;
+        parentGroups: Readonly<ProjectGroup[]>;
+        treeRef: any;
     }
+
+const getParentGroup = (item: ProjectTreeItem, res: ProjectGroup[] = []): ProjectGroup[] => {
+    if (item) {
+        res.push(item.node.data);
+        if (item.parent) return getParentGroup(item.parent, res);
+        return res;
+    }
+    return res;
+};
 
 export default {
     name: 'ProjectPage',
     components: {
-        PQuerySearch,
-        PTreeNode,
-        PVerticalPageLayout,
+        PDropdownMenuBtn,
         PButton,
+        ProjectGroupTree,
+        ProjectSearch,
+        PVerticalPageLayout,
         PI,
-        PHr,
-        PIconButton,
         PPageTitle,
         PCheckBox,
-        PQuerySearchTags,
         PSkeleton,
         PToolboxGridLayout,
         PButtonModal,
@@ -324,51 +335,41 @@ export default {
         SProjectGroupCreateFormModal,
         PIconTextButton,
     },
-    props: {
-        ...DefaultQSTreeProps,
-        ...DefaultQSGridQSProps,
-    },
     setup(props, context) {
+        const vm: ComponentInstance = getCurrentInstance() as ComponentInstance;
+
         const state: UnwrapRef<State> = reactive({
             items: [],
-            isHover: false,
-            hoveredId: '',
-            hoveredNode: null,
+            settingMenu: [
+                { name: 'edit', label: 'Edit Group Name', type: 'item' },
+                { name: 'delete', label: 'Delete This Group', type: 'item' },
+            ],
             showAllProjects: ref(false),
+            searchedProjectGroup: null,
+            selectedTreeItem: null,
+            parentGroups: computed(() => {
+                if (state.selectedTreeItem && state.selectedTreeItem.parent) {
+                    return reverse(getParentGroup(state.selectedTreeItem.parent));
+                } return [];
+            }),
+            treeRef: null,
         });
-        const projectState = reactive({
-            parentGroup: '',
-            currentGroup: '',
-            currentGroupId: '',
-        });
+
         const formState = reactive({
             projectGroupFormVisible: false,
             projectFormVisible: false,
             projectGroupDeleteFormVisible: false,
-            isRoot: false,
             headerTitle: '',
             themeColor: '',
             modalContent: '',
             updateMode: false,
+            createTargetNode: null as ProjectTreeItem|null,
         });
 
         const { provider } = useStore();
         provider.getProvider();
-        const vm: ComponentInstance = getCurrentInstance() as ComponentInstance;
 
-        /**
-             Tree, Project, Statistics API Handler Declaration
-             */
         const projectAPI = fluentApi.identity().project();
-        const treeAction = projectAPI.tree()
-            .setSortBy('name')
-            .setSortDesc(false)
-            .setExcludeProject();
-        const treeSearchAction = projectAPI.treeSearch();
-        const treeApiHandler = new ProjectTreeFluentAPI({
-            treeAction, treeSearchAction,
-        });
-
         const projectGroupAPI = fluentApi.identity().projectGroup();
         const statisticsAPI = fluentApi.statisticsTest().resource().stat()
             .setResourceType('identity.Project')
@@ -398,7 +399,7 @@ export default {
 
         const setProvider = (resp) => {
             const temp = resp.data.results.map((it) => {
-                const providers = (it.providers as string[]).map(name => _.get(provider.state.providers, [name, 'icon']));
+                const providers = (it.providers as string[]).map(name => get(provider.state.providers, [name, 'icon']));
                 const extraProviders = providers.length > 5 ? providers.length - 5 : 0;
                 return {
                     ...it,
@@ -414,7 +415,7 @@ export default {
         const getCard = (resp: AxiosResponse<ProjectListResp>) => {
             if (resp.data.results.length !== 0) {
                 const ids = resp.data.results.map(item => item.project_id);
-                cardSummary.value = reactive(_.zipObject(ids));
+                cardSummary.value = reactive(zipObject(ids));
                 const setCard = (items) => {
                     items.forEach((item) => {
                         const project_id = item.project_id;
@@ -443,76 +444,32 @@ export default {
              * QuerySearch Grid API : Grid layout with query search bar & List Action(with fluent API)
              */
         const listAction = projectGroupAPI.listProjects().setTransformer(getCard).setIncludeProvider();
-        const isShow = computed(() => treeApiHandler.ts.metaState.firstSelectedNode);
+        const listAllAction = projectAPI.list().setIncludeProvider().setTransformer(getCard);
 
 
-        const apiHandler = new QuerySearchGridFluentAPI(
+        const apiHandler = new SearchGridFluentAPI(
             listAction,
             {
                 cardClass: () => ['card-item', 'project-card-item'],
                 cardMinWidth: '18.75rem',
                 cardHeight: '15rem',
             },
-            undefined,
-            {
-                keyHandler: getKeyHandler(['name', 'project_id']),
-                valueHandlerMap: getStatApiValueHandlerMap(
-                    ['name', 'project_id'],
-                    'identity.Project',
-                    (action, ...args) => {
-                        const api = action.setFixFilter({
-                            key: 'project_group_id',
-                            value: treeApiHandler.ts.metaState.firstSelectedNode.node.data.id,
-                            operator: FILTER_OPERATOR.in,
-                        });
-                        return getStatAction(api, ...args);
-                    },
-                ),
-                suggestKeys: ['name', 'project_id'],
-            },
-            isShow,
         );
 
-        /**
-             * Set Page Title
-             * */
-        const setProjectState = ({ node, parent }: TreeItem<ProjectItemResp, ProjectNodeState>) => {
-            projectState.currentGroup = node.data.name;
-            projectState.currentGroupId = node.data.id;
-            if (parent) { projectState.parentGroup = parent.node.data.name; } else { projectState.parentGroup = ''; }
-        };
-
-        // list projects when selected project group changed
-        watch(() => treeApiHandler.ts.metaState.firstSelectedNode, async (after, before) => {
-            if ((after && !before) || (after && after.node.data.id !== before.node.data.id)) {
-                formState.isRoot = false;
-                setProjectState(after);
-                apiHandler.action = listAction.setId(after.node.data.id);
-                apiHandler.resetAll();
-                await apiHandler.getData();
-                setProjectState(after);
-            }
-        });
-
         watch(() => state.showAllProjects, async (after: boolean, before: boolean) => {
-            if (isShow.value && after !== before) {
+            if (after !== before) {
+                // @ts-ignore
                 apiHandler.action = apiHandler.action.setRecursive(after);
                 apiHandler.resetAll();
                 await apiHandler.getData();
             }
-        });
+        }, { lazy: true });
 
-        const hovered = (item: TreeItem<ProjectItemResp, ProjectNodeState>, matched, e, isHovered: boolean) => {
-            formState.isRoot = false;
-            state.isHover = isHovered;
-            state.hoveredId = item.node.data.id;
-            state.hoveredNode = item;
-        };
 
         /**
              * Click Card Item
              */
-        const clickCard = (item) => {
+        const onClickCard = (item) => {
             vm.$router.push({
                 name: 'projectDetail',
                 params: {
@@ -540,27 +497,25 @@ export default {
             formState.modalContent = 'Are you sure you want to delete this Project group?';
         };
 
-        // TODO: change to async/await
-        const projectGroupDeleteFormConfirm = () => {
-            // @ts-ignore
-            fluentApi.identity().projectGroup().delete().setId(treeApiHandler.ts.metaState.firstSelectedNode.node.data.id)
-                .execute()
-                .then(() => {
-                    context.root.$notify({
-                        group: 'noticeTopRight',
-                        type: 'success',
-                        title: 'Success',
-                        text: 'Delete Project Group',
-                        duration: 2000,
-                        speed: 1000,
-                    });
-                    treeApiHandler.ts.deleteNode(treeApiHandler.ts.metaState.firstSelectedNode);
-                    treeApiHandler.ts.metaState.selectedNodes = [];
-                })
-                .catch((e) => {
-                    showErrorMessage('Fail to Delete Project Group', e, context.root);
+        const projectGroupDeleteFormConfirm = async () => {
+            try {
+                await fluentApi.identity().projectGroup().delete()
+                    .setId(state.searchedProjectGroup?.id as string)
+                    .execute();
+                context.root.$notify({
+                    group: 'noticeTopRight',
+                    type: 'success',
+                    title: 'Success',
+                    text: 'Delete Project Group',
+                    duration: 2000,
+                    speed: 1000,
                 });
-            formState.projectGroupDeleteFormVisible = false;
+                state.treeRef.deleteSelectedNode();
+            } catch (e) {
+                showErrorMessage('Fail to Delete Project Group', e, context.root);
+            } finally {
+                formState.projectGroupDeleteFormVisible = false;
+            }
         };
 
         const openProjectGroupEditForm = () => {
@@ -568,84 +523,25 @@ export default {
             formState.projectGroupFormVisible = true;
         };
 
-        const openProjectGroupForm = (isRoot) => {
+        const openProjectGroupForm = (createTargetNode: ProjectTreeItem|null) => {
             formState.updateMode = false;
-            if (isRoot) {
-                formState.isRoot = true;
-            }
+            formState.createTargetNode = createTargetNode;
             formState.projectGroupFormVisible = true;
         };
 
-        // TODO: change to async/await
-        const projectGroupFormConfirm = async (item) => {
-            if (!formState.updateMode) {
-                let projectGroupId;
-                if (formState.isRoot) projectGroupId = null;
-                else projectGroupId = state.hoveredId;
+        const onProjectGroupUpdate = async (item: ProjectGroup) => {
+            if (state.searchedProjectGroup) state.searchedProjectGroup.name = item.name;
+            state.treeRef.updateSelectedNode(item);
+            formState.projectGroupFormVisible = false;
+        };
+        const onProjectGroupCreate = async (item: ProjectGroup) => {
+            const newItem: ProjectItemResp = {
+                ...item,
+                item_type: 'PROJECT_GROUP',
+                has_child: false,
+            };
 
-                try {
-                    const resp = await fluentApi.identity().projectGroup().create().setParameter({
-                        parent_project_group_id: projectGroupId,
-                        ...item,
-                    })
-                        .execute();
-                    context.root.$notify({
-                        group: 'noticeTopRight',
-                        type: 'success',
-                        title: 'Success',
-                        text: 'Create Project Group',
-                        duration: 2000,
-                        speed: 1000,
-                    });
-                    item.id = resp.data.project_group_id;
-                    item.item_type = 'PROJECT_GROUP';
-                    const newNode = getDefaultNode(item, {
-                        children: item.has_child,
-                        state: {
-                            ...getBaseNodeState(),
-                            loading: false,
-                        },
-                    });
-                    // add new node to current tree nodes
-                    if (formState.isRoot) treeApiHandler.ts.metaState.nodes.push(newNode);
-                    else if (state.hoveredNode) {
-                        if (Array.isArray(state.hoveredNode.node.children)) {
-                            state.hoveredNode.node.children.push(newNode);
-                            treeApiHandler.ts.setNodeState(state.hoveredNode, { expanded: true });
-                        } else {
-                            const res = await treeApiHandler.getData(state.hoveredNode);
-                            treeApiHandler.ts.setNodeState(state.hoveredNode, { expanded: true });
-                        }
-                    }
-                } catch (e) {
-                    showErrorMessage('Fail to Create Project Group', e, context.root);
-                }
-            } else {
-                // @ts-ignore
-                fluentApi.identity().projectGroup().update().setParameter({
-                    project_group_id: treeApiHandler.ts.metaState.firstSelectedNode.node.data.id,
-                    ...item,
-                })
-                    .execute()
-                    .then((resp) => {
-                        context.root.$notify({
-                            group: 'noticeTopRight',
-                            type: 'success',
-                            title: 'Success',
-                            text: 'Update Project Group',
-                            duration: 2000,
-                            speed: 1000,
-                        });
-                        projectState.currentGroup = item.name;
-                        treeApiHandler.ts.metaState.firstSelectedNode.node.data = {
-                            ...treeApiHandler.ts.metaState.firstSelectedNode.node.data,
-                            name: item.name,
-                        };
-                    })
-                    .catch((e) => {
-                        showErrorMessage('Fail to Update Project Group', e, context.root);
-                    });
-            }
+            await state.treeRef.addNode(newItem, formState.createTargetNode);
             formState.projectGroupFormVisible = false;
         };
 
@@ -653,38 +549,84 @@ export default {
             formState.projectFormVisible = true;
         };
 
-        // TODO: change to async/await
-        const projectFormConfirm = (item) => {
-            fluentApi.identity().project().create().setParameter({
-                // @ts-ignore
-                project_group_id: treeApiHandler.ts.metaState.firstSelectedNode.node.data.id,
-                ...item,
-            })
-                .execute()
-                .then(() => {
-                    context.root.$notify({
-                        group: 'noticeTopRight',
-                        type: 'success',
-                        title: 'Success',
-                        text: 'Create Project',
-                        duration: 2000,
-                        speed: 1000,
-                    });
+        const projectFormConfirm = async (item) => {
+            try {
+                await fluentApi.identity().project().create().setParameter({
+                    project_group_id: state.searchedProjectGroup?.id,
+                    ...item,
                 })
-                .catch((e) => {
-                    showErrorMessage('Fail to Create a Project', e, context.root);
-                })
-                .finally(() => {
-                    apiHandler.getData();
+                    .execute();
+                context.root.$notify({
+                    group: 'noticeTopRight',
+                    type: 'success',
+                    title: 'Success',
+                    text: 'Create Project',
+                    duration: 2000,
+                    speed: 1000,
                 });
-            formState.projectFormVisible = false;
+            } catch (e) {
+                showErrorMessage('Fail to Create a Project', e, context.root);
+            } finally {
+                formState.projectFormVisible = false;
+                await apiHandler.getData();
+            }
         };
 
-        makeQueryStringComputeds(treeApiHandler.ts.metaState, {
-            firstSelectedNode: {
+        /**
+         * Handling Tree Data
+         * */
+
+        const onSelectTreeItem = (e: ProjectTreeItem|null) => {
+            state.selectedTreeItem = e;
+            if (e) {
+                state.searchedProjectGroup = {
+                    id: e.node.data.id,
+                    name: e.node.data.name,
+                };
+            } else {
+                state.searchedProjectGroup = e;
+            }
+        };
+
+
+        /** Search */
+        const onSearch = async ({ value, projectGroupId }) => {
+            if (projectGroupId) {
+                await state.treeRef.findNode(projectGroupId);
+            } else {
+                apiHandler.action = apiHandler.action.setFixFilter({ key: 'name', value, operator: '' });
+                await apiHandler.getData();
+            }
+        };
+
+
+        onMounted(() => {
+            watch(() => state.searchedProjectGroup, (group) => {
+                if (group) {
+                    apiHandler.action = listAction.setId(group.id);
+                    apiHandler.resetAll();
+                    apiHandler.getData();
+                    if (!state.selectedTreeItem
+                        || (state.selectedTreeItem && state.selectedTreeItem.node.data.id !== group.id)) {
+                        state.treeRef.findNode(group.id);
+                    }
+                } else {
+                    // @ts-ignore
+                    apiHandler.action = listAllAction;
+                    apiHandler.resetAll();
+                    apiHandler.getData();
+                    if (state.selectedTreeItem) state.treeRef.listNodes();
+                }
+            });
+        });
+
+
+        /** Query String */
+        makeQueryStringComputeds(state, {
+            searchedProjectGroup: {
                 key: 'select_pg',
-                getter: (item: null|TreeItem<ProjectItemResp, ProjectNodeState>) => {
-                    if (item) return item.node.data.id;
+                getter: (item: null|ProjectGroup) => {
+                    if (item) return item.id;
                     return null;
                 },
                 disableSetter: true,
@@ -694,33 +636,23 @@ export default {
         const init = async () => {
             const pgId = vm.$route.query.select_pg as string|null;
             if (pgId) {
-                await treeApiHandler.getSearchData(pgId, 'PROJECT_GROUP');
-                if (treeApiHandler.ts.metaState.firstSelectedNode) {
-                    treeApiHandler.ts.setNodeState(
-                        treeApiHandler.ts.metaState.firstSelectedNode, { expanded: false },
-                    );
-                }
-            } else {
-                await treeApiHandler.defaultGetData();
-                if (treeApiHandler.ts.metaState.nodes[0]) {
-                    const item = getTreeItem(0, 0, treeApiHandler.ts.metaState.nodes[0]);
-                    treeApiHandler.ts.metaState.selectedNodes = [item];
-                    treeApiHandler.ts.setNodeState(item, { selected: true });
-                }
+                const res = await fluentApi.identity().projectGroup().get()
+                    .setId(pgId)
+                    .execute();
+                state.searchedProjectGroup = {
+                    id: pgId,
+                    name: res.data.name,
+                };
             }
         };
 
         init();
 
-
         return {
-            treeApiHandler,
             ...toRefs(state),
-            ...toRefs(projectState),
             ...toRefs(formState),
-            skeletons: _.range(3),
-            hovered,
-            clickCard,
+            skeletons: range(3),
+            onClickCard,
             goToServiceAccount,
             cardSummary,
             projectSummary,
@@ -731,69 +663,106 @@ export default {
             openProjectGroupEditForm,
             projectFormConfirm,
             openProjectGroupForm,
-            projectGroupFormConfirm,
+            onSearch,
+            onSelectTreeItem,
+            onProjectGroupUpdate,
+            onProjectGroupCreate,
         };
     },
 };
 </script>
 
 <style lang="postcss" scoped>
-.tree-header {
-    @apply font-semibold text-sm text-gray-500 ml-5 mt-6 mb-4 overflow-x-hidden overflow-y-hidden;
-}
-
-::v-deep .basic {
-    @apply mx-3 mt-1 ;
-}
-
-::v-deep .group-add-btn {
-    @apply float-right mr-1;
-    max-width: 1.5rem;
-    max-height: 1.5rem;
-    min-width: 1.5rem;
-    min-height: 1.5rem;
-    &:hover {
-        color: inherit;
+    .left-sidebar {
+        @apply h-full relative;
     }
-    &:not(:disabled):not(.disabled):hover {
-         @apply bg-blue-300 border-blue-300;
-    }
-}
-
-::v-deep .card-item {
-    @apply bg-white border border-gray-200;
-    border-radius: 2px;
-    cursor: pointer;
-    &:hover {
-        @apply border-l border-gray-200 bg-blue-100;
-        cursor: pointer;
-         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
-         border-radius: 4px;
-    }
-}
-
-.project-group {
-    & p {
-        @apply text-xs text-gray;
-    }
-    & span {
-        @apply text-2xl font-bold pb-2;
-    }
-    .delete-btn {
-        @apply text-black -mt-2 ml-2 cursor-pointer;
-        &:hover {
-            @apply text-white;
+    .side-item {
+        header {
+            @apply flex pl-4 pt-8 pb-3 mb-3 border-b border-gray-200 items-center;
+        }
+        .title {
+            @apply text-sm text-gray-500 font-semibold capitalize;
+            line-height: 1.2;
+        }
+        .icon-help {
+            @apply ml-2;
+            cursor: help;
+        }
+        .action-btn {
+            @apply ml-auto justify-end;
+            height: auto;
+            line-height: 1.2;
         }
     }
-}
 
-.project-group-icon {
-        @apply mx-1;
-}
+    .p-page-title::v-deep {
+        @apply flex w-full pb-5 border-b border-gray-200;
+        .extra {
+            @apply inline-flex flex-grow justify-between items-center;
+        }
+        .btns {
+            @apply inline-flex items-center;
+            .icon-text-button {
+                @apply ml-4;
+            }
+        }
+    }
 
-.empty {
-    @apply flex-col text-center justify-start;
-}
+    .parents-info {
+        @apply flex items-center mb-3 text-gray-900;
+        height: 1rem;
+        .group-name {
+            @apply inline-flex items-center text-xs;
+        }
+        .text {
+            @apply opacity-50;
+            &.link {
+                @apply cursor-pointer;
+                &:hover {
+                    @apply opacity-100;
+                }
+            }
+        }
+    }
+
+    .show-all {
+        @apply text-sm ml-2 leading-relaxed;
+    }
+
+    ::v-deep .card-item {
+        @apply bg-white border border-gray-200;
+        border-radius: 2px;
+        cursor: pointer;
+        &:hover {
+            @apply border-l border-gray-200 bg-blue-100;
+            cursor: pointer;
+             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+             border-radius: 4px;
+        }
+    }
+
+    .project-group {
+        & p {
+            @apply text-xs text-gray;
+        }
+        & span {
+            @apply text-2xl font-bold pb-2;
+        }
+        .delete-btn {
+            @apply text-black -mt-2 ml-2 cursor-pointer;
+            &:hover {
+                @apply text-white;
+            }
+        }
+    }
+
+    .project-group-icon {
+            @apply mx-1;
+    }
+
+    .empty {
+        @apply flex-col text-center justify-start;
+    }
 
     .project-description {
         @apply mx-4 mt-6;
@@ -839,7 +808,7 @@ export default {
                     @apply ml-2 font-bold;
                 }
             }
-    }
+        }
 
     .empty-providers {
         @apply relative text-xs text-gray-900;

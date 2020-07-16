@@ -5,7 +5,7 @@ import {
     ValueHandlerMap,
 } from '@/components/organisms/search/query-search/PQuerySearch.toolset';
 import { StatQueryAPI } from '@/lib/fluent-api/statistics/toolset';
-import { FILTER_OPERATOR, FilterItem, OperatorType } from '@/lib/fluent-api/type';
+import { FILTER_OPERATOR, FilterItem } from '@/lib/fluent-api/type';
 import { fluentApi } from '@/lib/fluent-api';
 import { get } from 'lodash';
 import { QueryTag } from '@/components/organisms/search/query-search-tags/PQuerySearchTags.toolset';
@@ -130,5 +130,3 @@ export const parseTag = (text: string): QueryTag => {
         value,
     };
 };
-export const makeSearchQuery = (text: string): QueryTag => parseTag(text);
-export const makeSearchText = (query: QueryTag): string => `${query.key ? `${query.key.name}:` : ''}${query.operator}${query.value}`;
