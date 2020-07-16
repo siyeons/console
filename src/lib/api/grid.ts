@@ -1,6 +1,6 @@
 import { Ref, ref, watch } from '@vue/composition-api';
 import { DynamicFluentAPIToolSet } from '@/lib/api/toolset';
-import { ListType, QueryAPI } from '@/lib/fluent-api';
+import { ActionAPI, ListType, QueryAPI } from '@/lib/fluent-api';
 import {
     QuerySearchGridLayoutToolSet,
     SearchGridLayoutToolSet,
@@ -11,6 +11,7 @@ import {
     defaultACHandler,
     getQueryItemsToFilterItems,
 } from '@/lib/api/query-search';
+import { StatTopicQueryAPI } from '@/lib/fluent-api/statistics/toolset';
 
 export abstract class BaseGridFluentAPI<
     parameter = any,
@@ -18,7 +19,7 @@ export abstract class BaseGridFluentAPI<
     initData = any,
     initSyncData = any,
     T extends ToolboxGridLayoutToolSet<initData, initSyncData> = ToolboxGridLayoutToolSet<initData, initSyncData>,
-    action extends QueryAPI<any, any> = QueryAPI<parameter, resp>,
+    action extends ActionAPI<any, any> = ActionAPI<parameter, resp>,
     > extends DynamicFluentAPIToolSet<parameter, resp, action> {
     gridTS: T;
 
@@ -30,11 +31,13 @@ export abstract class BaseGridFluentAPI<
         this.gridTS = new ToolboxGridLayoutToolSet<initData, initSyncData>() as T;
     }
 
-    protected getDefaultAction(): action {
-        return this.action
-            .setThisPage(this.gridTS.syncState.thisPage as number)
-            .setPageSize(this.gridTS.syncState.pageSize as number);
-    }
+    protected abstract getDefaultAction(): action
+
+    // protected getDefaultAction(): action {
+    //     return this.action
+    //         .setThisPage(this.gridTS.syncState.thisPage as number)
+    //         .setPageSize(this.gridTS.syncState.pageSize as number);
+    // }
 
     getAction = () => this.getDefaultAction()
 
@@ -93,6 +96,12 @@ export class SearchGridFluentAPI<
         this.gridTS = new SearchGridLayoutToolSet(initData, initSyncData) as T;
     }
 
+    protected getDefaultAction(): action {
+        return (this.action as QueryAPI<parameter, resp>)
+            .setThisPage(this.gridTS.syncState.thisPage as number)
+            .setPageSize(this.gridTS.syncState.pageSize as number) as action;
+    }
+
     // @ts-ignore
     getSearchTableDefaultAction: () => action = () => this.getDefaultAction().setKeyword(this.gridTS.searchText.value);
 
@@ -101,6 +110,90 @@ export class SearchGridFluentAPI<
     resetAll = () => {
         this.defaultReset();
         this.gridTS.searchText.value = '';
+    };
+}
+
+export class StatSearchGridFluentAPI<
+    parameter = any,
+    resp extends ListType<any> = ListType<any>,
+    initData = any,
+    initSyncData = any,
+    T extends SearchGridLayoutToolSet<initData, initSyncData> = SearchGridLayoutToolSet<initData, initSyncData>,
+    action extends StatTopicQueryAPI<any, any> = StatTopicQueryAPI<parameter, resp>,
+    > extends BaseGridFluentAPI<parameter, resp, action> {
+    gridTS: T;
+
+    constructor(
+        action: action,
+        initData: initData = {} as initData,
+        initSyncData: initSyncData = {} as initSyncData,
+    ) {
+        super(action);
+        this.gridTS = new SearchGridLayoutToolSet(initData, initSyncData) as T;
+    }
+
+    protected getDefaultAction(): action {
+        return (this.action as StatTopicQueryAPI<parameter, resp>)
+            .setStart(((this.gridTS.syncState.thisPage - 1) * this.gridTS.syncState.pageSize) + 1)
+            .setLimit(this.gridTS.syncState.pageSize as number) as action;
+    }
+
+    getSearchTableDefaultAction: () => action = () => this.getDefaultAction()//.setKeyword(this.gridTS.searchText.value);
+
+    getAction = () => this.getSearchTableDefaultAction();
+
+    resetAll = () => {
+        this.defaultReset();
+        this.gridTS.searchText.value = '';
+    };
+}
+
+export class StatQuerySearchGridFluentAPI<
+    parameter = any,
+    resp extends ListType<any> = ListType<any>,
+    initData = any,
+    initSyncData = any,
+    T extends QuerySearchGridLayoutToolSet<initData, initSyncData> = QuerySearchGridLayoutToolSet<initData, initSyncData>,
+    action extends StatTopicQueryAPI<parameter, resp> = StatTopicQueryAPI<parameter, resp>,
+    > extends BaseGridFluentAPI<parameter, resp, initData, initSyncData, T, action> {
+    initToolset = (initData, initSyncData, acHandlerMeta: ACHandlerMeta) => {
+        this.gridTS = new QuerySearchGridLayoutToolSet(acHandlerMeta.keyHandler, acHandlerMeta.valueHandlerMap, acHandlerMeta.suggestKeys, initData, initSyncData) as T;
+        watch(this.gridTS.querySearch.tags, async (tags, preTags) => {
+            if (tags !== preTags && this.action) {
+                await this.getData(true);
+            }
+        }, { lazy: true });
+    }
+
+    constructor(
+        action: action,
+        initData: initData = {} as initData,
+        initSyncData: initSyncData = {} as initSyncData,
+        acHandlerMeta: ACHandlerMeta = defaultACHandler,
+        initLazy = false,
+    ) {
+        super(action);
+        if (!initLazy) {
+            this.initToolset(initData, initSyncData, acHandlerMeta);
+        }
+    }
+
+    protected getDefaultAction(): action {
+        return (this.action as StatTopicQueryAPI<parameter, resp>)
+            .setStart(this.gridTS.syncState.thisPage as number)
+            .setLimit(this.gridTS.syncState.pageSize as number) as action;
+    }
+
+    getAction = () => {
+        const items = getQueryItemsToFilterItems(this.gridTS.querySearch.tags.value, this.gridTS.querySearch.suggestKeys);
+        return this.getDefaultAction()
+            .setFilter(...items.and)
+            .setFilterOr(...items.or);
+    };
+
+    resetAll = () => {
+        this.defaultReset();
+        this.gridTS.querySearch.syncState.value = '';
     };
 }
 
@@ -132,6 +225,12 @@ export class QuerySearchGridFluentAPI<
         if (!initLazy) {
             this.initToolset(initData, initSyncData, acHandlerMeta);
         }
+    }
+
+    protected getDefaultAction(): action {
+        return (this.action as QueryAPI<parameter, resp>)
+            .setThisPage(this.gridTS.syncState.thisPage as number)
+            .setPageSize(this.gridTS.syncState.pageSize as number) as action;
     }
 
     getAction = () => {

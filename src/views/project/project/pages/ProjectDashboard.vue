@@ -24,11 +24,14 @@
                     <resources-by-region
                         :get-action="resources.server"
                         :project-filter="projectFilter"
+                        :is-server="true"
                     />
                 </template>
                 <template #cloud_service>
                     <resources-by-region
                         :get-action="resources.cloudService"
+                        :project-filter="projectFilter"
+                        :is-server="false"
                     />
                 </template>
             </PTab>
@@ -123,7 +126,7 @@ export default {
 
         const cloudServiceSummary = new ServiceSummaryWidgetState({
             title: 'cloud services',
-            to: '/inventory/cloud-service',
+            to: `/inventory/cloud-service?f=project_id%3A${projectId.value}&provider=all&g_p=1&g_ps=24`,
             color: secondary1,
             getAction: api => api.setResourceType('identity.Project')
                 .setFilter({
@@ -140,20 +143,20 @@ export default {
                 .addGroupField('count', STAT_OPERATORS.sum, 'values.cloud_service_count'),
         });
 
-        const DailyUpdates = ({
-            server: api => api.setFilter({
-                key: 'values.project_id',
-                value: projectId.value,
-                operator: '=',
-            })
-                .setTopic('daily_server_updates_by_project'),
-            cloudService: api => api.setFilter({
-                key: 'values.project_id',
-                value: projectId.value,
-                operator: '=',
-            })
-                .setTopic('daily_cloud_service_updates_by_project'),
-        });
+        // const DailyUpdates = ({
+        //     server: api => api.setFilter({
+        //         key: 'values.project_id',
+        //         value: projectId.value,
+        //         operator: '=',
+        //     })
+        //         .setTopic('daily_server_updates_by_project'),
+        //     cloudService: api => api.setFilter({
+        //         key: 'values.project_id',
+        //         value: projectId.value,
+        //         operator: '=',
+        //     })
+        //         .setTopic('daily_cloud_service_updates_by_project'),
+        // });
 
         const dailyUpdates = ({
             server: api => api.setFilter(
