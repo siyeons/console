@@ -119,7 +119,7 @@ export class API {
             return Promise.reject(error);
         });
 
-        createAuthRefreshInterceptor(this.instance, refreshAuthLogic);
+        createAuthRefreshInterceptor(this.instance, refreshAuthLogic, { skipWhileRefreshing: false });
 
         return this.instance;
     }
