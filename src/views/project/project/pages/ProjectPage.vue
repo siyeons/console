@@ -261,7 +261,7 @@ import PCheckBox from '@/components/molecules/forms/checkbox/CheckBox.vue';
 import PIconTextButton from '@/components/molecules/buttons/IconTextButton.vue';
 import PSkeleton from '@/components/atoms/skeletons/Skeleton.vue';
 import {
-    FILTER_OPERATOR, fluentApi,
+    FILTER_OPERATOR, fluentApi, QueryAPI,
 } from '@/lib/fluent-api';
 import { UnwrapRef } from '@vue/composition-api/dist/reactivity';
 import { ProjectItemResp, ProjectListResp } from '@/lib/fluent-api/identity/project';
@@ -594,7 +594,7 @@ export default {
             if (projectGroupId) {
                 await state.treeRef.findNode(projectGroupId);
             } else {
-                apiHandler.action = apiHandler.action.setFixFilter({ key: 'name', value, operator: '' });
+                apiHandler.action = (apiHandler.action as QueryAPI<any, any>).setFixFilter({ key: 'name', value, operator: '' });
                 await apiHandler.getData();
             }
         };
