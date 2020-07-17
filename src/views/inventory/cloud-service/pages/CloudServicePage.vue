@@ -155,7 +155,7 @@ import { ComponentInstance } from '@vue/composition-api/dist/component';
 import {
     selectIndexAutoReplacer,
     makeQueryStringComputed,
-    makeQueryStringComputeds, numberArrayToOriginal,
+    makeQueryStringComputeds, queryStringToNumberArray,
     queryTagsToOriginal,
     queryTagsToQueryString,
 } from '@/lib/router-query-string';
@@ -466,7 +466,7 @@ export default {
             sortDesc: { key: 'sd', setter: Boolean },
             selectIndex: {
                 key: 'sl',
-                setter: numberArrayToOriginal,
+                setter: queryStringToNumberArray,
                 autoReplacer: selectIndexAutoReplacer,
             },
         });

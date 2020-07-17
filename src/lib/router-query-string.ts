@@ -12,9 +12,6 @@ import { parseTag } from '@/lib/api/query-search';
 
 export type RouteQueryString = string | (string | null)[] | null | undefined;
 export type RouteQuery = Dictionary<RouteQueryString>;
-export type Refs<Data=any> = {
-    [K in keyof Data]: Data[K] extends Ref<infer V> ? Ref<V> : Ref<Data[K]>;
-}
 
 export type Setter = (val: RouteQueryString) => any
 export type Getter = (val: any) => RouteQueryString
@@ -143,7 +140,7 @@ export const makeQueryStringComputeds = (
 
 
 /** QueryString Converter Helpers */
-export const numberArrayToOriginal: Setter = (val: RouteQueryString): number[] => {
+export const queryStringToNumberArray: Setter = (val: RouteQueryString): number[] => {
     if (typeof val === 'string') return [Number(val)];
     if (Array.isArray(val)) return val.map(d => Number(d));
     return [];
