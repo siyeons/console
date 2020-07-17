@@ -170,8 +170,8 @@ import PPageTitle from '@/components/organisms/title/page-title/PageTitle.vue';
 import { ComponentInstance } from '@vue/composition-api/dist/component';
 import {
     makeQueryStringComputed,
-    makeQueryStringComputeds, numberArrayToOriginal,
-    queryTagsToOriginal, queryTagsToQueryString, replaceQuery,
+    makeQueryStringComputeds, queryStringToNumberArray,
+    queryTagsToOriginal, queryTagsToQueryString, replaceQuery, selectIndexAutoReplacer,
 } from '@/lib/router-query-string';
 import {
     TabBarState,
@@ -544,9 +544,6 @@ export default {
             computed(() => apiHandler.tableTS.selectState.selectItems),
         );
 
-
-        // TODO: selectIndex reset problem caused by toolset getData
-
         const queryRefs = {
             f: makeQueryStringComputed(apiHandler.tableTS.querySearch.tags,
                 {
@@ -561,7 +558,8 @@ export default {
                 sortDesc: { key: 'sd', setter: Boolean },
                 selectIndex: {
                     key: 'sl',
-                    setter: numberArrayToOriginal,
+                    setter: queryStringToNumberArray,
+                    autoReplacer: selectIndexAutoReplacer,
                 },
             }),
             ...makeQueryStringComputeds(multiItemTab.syncState, {

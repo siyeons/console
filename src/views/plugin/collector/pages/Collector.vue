@@ -126,9 +126,9 @@ import {
 } from '@/components/molecules/tabs/tab-bar/toolset';
 import {
     makeQueryStringComputed,
-    makeQueryStringComputeds, numberArrayToOriginal,
+    makeQueryStringComputeds, queryStringToNumberArray,
     queryTagsToOriginal,
-    queryTagsToQueryString,
+    queryTagsToQueryString, selectIndexAutoReplacer,
 } from '@/lib/router-query-string';
 import { getEnumValueHandler, getKeyHandler } from '@/components/organisms/search/query-search/PQuerySearch.toolset';
 import { getStatApiValueHandlerMap } from '@/lib/api/query-search';
@@ -260,7 +260,7 @@ export default {
                 type: 'query-search-table',
                 options: {
                     fields: [
-                        { key: 'name', name: vm.$t('COMMON.NAME') },
+                        { key: 'name', name: vm.$t('COMMON.NAME'), options: { width: '2rem' } },
                         {
                             key: 'state',
                             name: vm.$t('COMMON.STATE'),
@@ -270,7 +270,7 @@ export default {
                                 DISABLED: { type: 'state', options: { icon: { color: 'alert' } } },
                             },
                         },
-                        { key: 'priority', name: vm.$t('COMMON.PRIORITY') },
+                        { key: 'priority', name: vm.$t('COMMON.PRIORITY'), options: { width: '30rem' } },
                         {
                             key: 'plugin_info.options.supported_resource_type',
                             name: vm.$t('COMMON.RESOURCE'),
@@ -361,8 +361,6 @@ export default {
             collectDataState.visible = true;
         };
 
-        // TODO: selectIndex reset problem caused by toolset getData
-
         const queryRefs = {
             f: makeQueryStringComputed(apiHandler.tableTS.querySearch.tags,
                 {
@@ -377,7 +375,8 @@ export default {
                 sortDesc: { key: 'sd', setter: Boolean },
                 selectIndex: {
                     key: 'sl',
-                    setter: numberArrayToOriginal,
+                    setter: queryStringToNumberArray,
+                    autoReplacer: selectIndexAutoReplacer,
                 },
             }),
             ...makeQueryStringComputeds(multiItemTab.syncState, {

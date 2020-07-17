@@ -194,7 +194,12 @@ import {
     SearchTableFluentAPI, TabSearchTableFluentAPI,
     defaultAdminLayout,
 } from '@/lib/api/table';
-import { makeQueryStringComputed, makeQueryStringComputeds, numberArrayToOriginal } from '@/lib/router-query-string';
+import {
+    makeQueryStringComputed,
+    makeQueryStringComputeds,
+    queryStringToNumberArray,
+    selectIndexAutoReplacer,
+} from '@/lib/router-query-string';
 import {
     GridLayoutState,
 } from '@/components/molecules/layouts/grid-layout/toolset';
@@ -625,7 +630,11 @@ export default {
                 thisPage: { key: 'p', setter: Number },
                 sortBy: { key: 'sb' },
                 sortDesc: { key: 'sd', setter: Boolean },
-                selectIndex: { key: 'sl', setter: numberArrayToOriginal },
+                selectIndex: {
+                    key: 'sl',
+                    setter: queryStringToNumberArray,
+                    autoReplacer: selectIndexAutoReplacer,
+                },
             }),
             ...makeQueryStringComputeds(multiItemTab.syncState, {
                 activeTab: { key: 'mt' },
@@ -659,14 +668,7 @@ export default {
                         apiHandler.action = ListAction.setFixFilter(
                             { key: 'provider', operator: '=', value: after },
                         );
-                        if (!before) {
-                            // init selected Index
-                            const sl = queryRefs.sl.value;
-                            await apiHandler.getData();
-                            queryRefs.sl.value = sl;
-                        } else {
-                            await apiHandler.getData();
-                        }
+                        await apiHandler.getData();
                     }
                 });
             }
